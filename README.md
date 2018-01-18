@@ -1,29 +1,27 @@
-TinyButStrong template engine
------------------------------
+# TinyButStrong template engine
+
+www.tinybutstrong.com
 
 TBS is a PHP template engine for pro and beginners.
 Only 1 class with few methods and properties, but it can do may things for any text templates, including HTML and XML.
 The only engine that enables W3C compliant templates.
-It has many plugins including OpenTBS.
+It has many plugins including OpenTBS for merging LibreOffice and Ms Office documents.
+
+## Documentation
+
+For documentation see 
+http://www.tinybutstrong.com/manual.php
+
+## Distribution repository
+
+TinyButStrong in on GitHub since version 3.5.3.
+
+TinyButStrong versions 3.10.0 or later can be installed with [Composer](http://getcomposer.org/download/).
+
+The package is "tinybutstrong/tinybutstrong" 
 
 
-Installation
-------------
-
-The preferred way to install this extension is through [composer](http://getcomposer.org/download/).
-
-Add `"skrol29/tinybutstrong": "*"` to the **require** section of your composer.json.
-And add
-```
-{
-    "type": "vcs",
-    "url":"http://github.com/roxblnfk/tinybutstrong"
-}
-```
-to the **repositories** section of your composer.json.
-
-
-# v3.11.0 adds:
+# Features:
 ---------------
 
 Added sorting blocks (arrays only) by custom field as int, float, string or by natural algorithm. Also can be used for subblocks.

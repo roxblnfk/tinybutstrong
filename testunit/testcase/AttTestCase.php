@@ -2,8 +2,8 @@
 
 class AttTestCase extends TBSUnitTestCase {
 
-	function AttTestCase() {
-		$this->UnitTestCase('Att option Unit Tests');
+	function __construct() {
+        parent::__construct('Att option Unit Tests');
 	}
 
 	function setUp() {

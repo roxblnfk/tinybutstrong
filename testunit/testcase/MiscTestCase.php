@@ -2,8 +2,8 @@
 
 class MiscTestCase extends TBSUnitTestCase {
 
-	function MiscTestCase() {
-		$this->UnitTestCase('Miscelaneous Unit Tests');
+	function __construct() {
+        parent::__construct('Miscelaneous Unit Tests');
 	}
 
 	function setUp() {

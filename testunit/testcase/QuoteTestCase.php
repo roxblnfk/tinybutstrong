@@ -2,8 +2,8 @@
 
 class QuoteTestCase extends TBSUnitTestCase {
 
-	function QuoteTestCase() {
-		$this->UnitTestCase('Quote Unit Tests');
+	function __construct() {
+        parent::__construct('Quote Unit Tests');
 	}
 
 	function setUp() {

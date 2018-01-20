@@ -32,11 +32,21 @@ if (version_compare(PHP_VERSION, '5.4') < 0) {
     require_once $dir_tbs . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 }
 
-
 require_once($tbsFileName);
 
+// other files required for unit tests
+require_once($dir_testu . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'TBSUnitTestCase.php');
+
+if (PHP_SAPI === 'cli') { // Text output
+    require_once($dir_testu . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'TextCoverageReporter.php');
+    $reporter = new TextCoverageReporter();
+} else {                  // HTML output
+    require_once($dir_testu . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'HtmlCodeCoverageReporter.php');
+    $reporter = new HtmlCodeCoverageReporter(array($tbsFileName, $dir_plugins . DIRECTORY_SEPARATOR));
+}
+
 if (!file_exists($dir_plugins)) {
-    echo("<span style='color:red;font-weight:900'>Plug-ins directory not found!</span>");
+    $reporter->paintFormattedMessage("Plug-ins directory not found!");
 } else {
     require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_html.php');
     require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_bypage.php');
@@ -47,9 +57,6 @@ if (!file_exists($dir_plugins)) {
    @require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_syntaxes.php');
 }
 
-// other files required for unit tests
-require_once($dir_testu . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'TBSUnitTestCase.php');
-require_once($dir_testu . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'HtmlCodeCoverageReporter.php');
 
 // include unit test classes
 include($dir_testu . DIRECTORY_SEPARATOR . 'testcase' . DIRECTORY_SEPARATOR . 'AttTestCase.php');
@@ -62,7 +69,6 @@ include($dir_testu . DIRECTORY_SEPARATOR . 'testcase' . DIRECTORY_SEPARATOR . 'M
 include($dir_testu . DIRECTORY_SEPARATOR . 'testcase' . DIRECTORY_SEPARATOR . 'SubTplTestCase.php');
 
 // launch tests
-
 $SimpleTest = new SimpleTest();
 $tbs = new clsTinyButStrong();
 $test = new TestSuite('TinyButStrong v' . $tbs->Version . ' (with PHP ' . PHP_VERSION . ', simpleTest ' . $SimpleTest->getVersion() . ')');
@@ -74,4 +80,5 @@ $test->add(new FrmTestCase());
 $test->add(new StrconvTestCase());
 $test->add(new MiscTestCase());
 $test->add(new SubTplTestCase());
-$test->run(new HtmlCodeCoverageReporter(array($tbsFileName, $dir_plugins . DIRECTORY_SEPARATOR)));
+
+$test->run($reporter);

@@ -9,6 +9,7 @@ set_time_limit(0);
 $dir_testu = dirname(__FILE__);
 $dir_tbs = dirname($dir_testu);
 $dir_plugins = $dir_tbs . DIRECTORY_SEPARATOR . 'plugins';
+chdir($dir_testu);
 
 if (!file_exists($dir_plugins)) {
     $dir_plugins = dirname($dir_tbs) . DIRECTORY_SEPARATOR . 'tbs_plugins';
@@ -72,6 +73,7 @@ include($dir_testu . DIRECTORY_SEPARATOR . 'testcase' . DIRECTORY_SEPARATOR . 'S
 $SimpleTest = new SimpleTest();
 $tbs = new clsTinyButStrong();
 $test = new TestSuite('TinyButStrong v' . $tbs->Version . ' (with PHP ' . PHP_VERSION . ', simpleTest ' . $SimpleTest->getVersion() . ')');
+
 $test->add(new FieldTestCase());
 $test->add(new BlockTestCase());
 $test->add(new AttTestCase());

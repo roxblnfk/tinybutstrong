@@ -169,11 +169,11 @@ class FrmTestCase extends TBSUnitTestCase {
 		$this->assertEqualMergeFieldStrings("{[a;frm=+0 000,00|-0 000,00|0|(nothing)]}", array('a'=>$z),  "{0}", "4 conditions merged with a zero value");
 		$this->assertEqualMergeFieldStrings("{[a;frm=+0 000,00|-0 000,00|0|(nothing)]}", array('a'=>$e),  "{(nothing)}", "4 conditions merged with a null-empty value");
 
-        // In this example, it is merged a date format: r is replaced by the hour
-        date_default_timezone_set('Etc/GMT+0');
-		$this->assertEqualMergeFieldStrings("{[a;frm=+0 000,00|-0 000,00|zero|(nothing)]}", array('a'=>0),  "{ze12o}", "%s: zero part merged as standard");
 
-
+		// strange or bug ?
+		//$this->assertEqualMergeFieldStrings("{[a;frm=+0 000,00|-0 000,00|zero|(nothing)]}", array('a'=>$z),  "{ze12o}", "zero part merged as standard"); // this is not a bug yet, only a poor functionality: the zero part format is used a standard format (i.e. date or numeric). In this example, it is merged a date format: r is replaced by the hour
+		$this->assertEqualMergeFieldStrings("{[a;frm=+0 000,00|-0 000,00|zero|(nothing)]}", array('a'=>$z),  "{" . date('\\z\\eg\\o', $z) . "}", "zero part merged as standard"); // this is not a bug yet, only a poor functionality: the zero part format is used a standard format (i.e. date or numeric). In this example, it is merged a date format: r is replaced by the hour
+		
 		//$this->dumpLastSource();
 
 	}

@@ -8,12 +8,7 @@ set_time_limit(0);
 
 $dir_testu = dirname(__FILE__);
 $dir_tbs = dirname($dir_testu);
-$dir_plugins = $dir_tbs . DIRECTORY_SEPARATOR . 'plugins';
 chdir($dir_testu);
-
-if (!file_exists($dir_plugins)) {
-    $dir_plugins = dirname($dir_tbs) . DIRECTORY_SEPARATOR . 'tbs_plugins';
-}
 
 // include tbs classes
 if (version_compare(PHP_VERSION, '5.0') < 0) {
@@ -43,21 +38,8 @@ if (PHP_SAPI === 'cli') { // Text output
     $reporter = new TextCoverageReporter();
 } else {                  // HTML output
     require_once($dir_testu . DIRECTORY_SEPARATOR . 'include' . DIRECTORY_SEPARATOR . 'HtmlCodeCoverageReporter.php');
-    $reporter = new HtmlCodeCoverageReporter(array($tbsFileName, $dir_plugins . DIRECTORY_SEPARATOR));
+    $reporter = new HtmlCodeCoverageReporter(array($tbsFileName));
 }
-
-if (!file_exists($dir_plugins)) {
-    $reporter->paintFormattedMessage("Plug-ins directory not found!");
-} else {
-    require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_html.php');
-    require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_bypage.php');
-    require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_cache.php');
-    require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_mergeonfly.php');
-    require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_navbar.php');
-   @require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_ref.php');
-   @require_once($dir_plugins . DIRECTORY_SEPARATOR . 'tbs_plugin_syntaxes.php');
-}
-
 
 // include unit test classes
 include($dir_testu . DIRECTORY_SEPARATOR . 'testcase' . DIRECTORY_SEPARATOR . 'AttTestCase.php');

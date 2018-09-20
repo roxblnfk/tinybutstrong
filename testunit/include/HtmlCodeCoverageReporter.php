@@ -2,9 +2,10 @@
 
 class HtmlCodeCoverageReporter extends HtmlReporter {
 
-	var $code_coverage = '';
+	var $code_coverage = array();
 	var $code_coverage_include_paths = array();
 	var $code_coverage_exclude_paths = array();
+	var $character_set;
 	var $time = 0;
 
 	/**
@@ -12,8 +13,9 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 	 * @param mixed $includePaths      array or string of file or dir path to include in code coverage
 	 * @param mixed $excludePaths      array or string of file or dir path to exclude from code coverage
 	 */
-	function HtmlCodeCoverageReporter($includePaths, $excludePaths = null) {
-		$this->HtmlReporter();
+	function __construct($includePaths, $excludePaths = null) {
+		parent::__construct('utf-8');
+		$this->character_set = 'utf-8';
 		if (is_array($includePaths)) {
 			foreach ($includePaths as $includePath)
 				$this->code_coverage_include_paths[] = $this->cleanDirecory($includePath);
@@ -55,7 +57,7 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 	 */
 	function paintGroupStart($test_name, $size) {
 		$this->time = $this->getMicrotime();
-		HtmlReporter::paintGroupStart($test_name, $size);
+		parent::paintGroupStart($test_name, $size);
 		if (extension_loaded('xdebug'))
 			xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE); 
 	}
@@ -72,7 +74,7 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 			xdebug_stop_code_coverage();
 			ksort($this->code_coverage);
 		}
-		HtmlReporter::paintGroupEnd($test_name);
+		parent::paintGroupEnd($test_name);
 	}
 
 	/**
@@ -136,16 +138,17 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 		$width = max($linesLength);
 		$i = 1;
 		foreach ($lines as $line) {
+            $css = '';
 			if (isSet($coverageData[$i])) {
 				if ($coverageData[$i] == -2) $css = 'lineDeadCode';
 				if ($coverageData[$i] == 1) $css = 'lineCov';
 				if ($coverageData[$i] == -1) $css = 'lineNoCov';
-			} else $css = '';
+			}
 			$fillup = $width - strLen($line);
 			if ($fillup > 0)
 				$line .= str_repeat(' ', $fillup);
 			$lineNum = sprintf('%6d', $i);
-			print "<span class=\"lineNum\">$lineNum </span><span class=\"$css\">".htmlspecialchars($line)."</span>\n";
+			print "<span class=\"lineNum\">$lineNum </span><span class=\"{$css}\">".htmlspecialchars($line)."</span>\n";
 			$i++;
 		}
 	}
@@ -184,7 +187,8 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 	 * @access protected
 	 */
 	function _getCss() {
-		return HtmlReporter::_getCss() .
+		$tmp = new parent;
+		return (method_exists($tmp, 'getCss') ? $tmp::getCss() : $tmp::_getCss()) .
 			" pre.source { font-family: monospace; white-space: pre; background-color: #eeeeec; }" .
 			" span.lineNum { background-color: #e9b96e; }" .
 			" span.lineCov { background-color: #8ae234; }" .
@@ -198,5 +202,3 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 			" table#coverage td { background-color: #d4d7d0; color: black; text-align: left; padding: 0.1em 1em; }";
 	}
 }
-
-?>

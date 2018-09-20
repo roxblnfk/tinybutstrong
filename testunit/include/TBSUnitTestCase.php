@@ -5,6 +5,7 @@ class TBSUnitTestCase extends UnitTestCase {
 
 	/**
 	 * Last instance of 'clsTinyButStrong' class.
+     * @var clsTinyButStrong
 	 */
 	var $tbs;
 	var $newInstance = true;
@@ -88,7 +89,8 @@ class TBSUnitTestCase extends UnitTestCase {
 
 	/**
 	 * Simple instanciate clsTbsDataSource class.
-	 * @param mixed $data            data for DataPrepare function
+	 * @param mixed $data data for DataPrepare function
+	 * @param string $source
 	 */
 	function createTbsDataSourceInstance($data, $source = '') {
 		$this->createTBSInstance($source);
@@ -237,5 +239,3 @@ class TBSUnitTestCase extends UnitTestCase {
 		return $this->assertEqualMergeString(file_get_contents($this->getTemplateDir().$resultFilename), $message);
 	}
 }
-
-?>

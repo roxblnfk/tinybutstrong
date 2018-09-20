@@ -2,8 +2,8 @@
 
 class DataSourceTestCase extends TBSUnitTestCase {
 
-	function DataSourceTestCase() {
-		$this->UnitTestCase('DataSource Unit Tests');
+	function __construct() {
+		parent::__construct('DataSource Unit Tests');
 	}
 
 	function setUp() {
@@ -63,7 +63,7 @@ class DataSourceTestCase extends TBSUnitTestCase {
 			'b as str asc'  => array(3, 1, 0, 2),
 			'b as str desc' => array(2, 0, 1, 3),
 			'b as nat'      => array(3, 1, 0, 2),
-			'b as int'      => array(3, 2, 1, 0),
+            'b as int'      => version_compare('7.0', phpversion()) <= 0 ? array(2, 3, 1, 0) : array(3, 2, 1, 0), // php5: array(3, 2, 1, 0); php7: array(2, 3, 1, 0)
 			'c as nat'      => array(3, 1, 2, 0),
 			'd, a'                  => array(2, 0, 1, 3),
 			'd as int asc, a asc'   => array(2, 0, 1, 3),
@@ -579,4 +579,3 @@ class DataSourceTestCase extends TBSUnitTestCase {
 	}
 	
 }
-

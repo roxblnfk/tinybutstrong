@@ -1,6 +1,6 @@
 <?php
 
-error_reporting(E_ALL & ~E_USER_NOTICE & ~E_STRICT);
+error_reporting(E_ALL);
 ini_set("display_errors", "On");
 set_time_limit(0);
 //ini_set('memory_limit', '256M');
@@ -8,62 +8,63 @@ set_time_limit(0);
 
 $dir_testu = dirname(__FILE__);
 $dir_tbs = dirname($dir_testu);
-$dir_plugins = $dir_tbs . '/plugins';
-if (!file_exists($dir_plugins)) {
-	$dir_plugins = dirname($dir_tbs) . '/tbs_plugins';
-}
-if (!file_exists($dir_plugins)) {
-	exit("Plug-ins directory not found. Abort.");
+chdir($dir_testu);
+
+// include tbs classes
+if (version_compare(PHP_VERSION, '5.0') < 0) {
+    $tbsFileName = "{$dir_tbs}/tbs_class_php4.php";
+} else {
+    $tbsFileName = "{$dir_tbs}/tbs_class.php";
 }
 
 // include classes required for unit tests
-// "@" is in order to avoid Deprecated warnings
-@require_once($dir_testu.'/simpletest/unit_tester.php');
-require_once($dir_testu.'/simpletest/reporter.php');
-@require_once($dir_testu.'/simpletest/mock_objects.php');
-
-// include tbs classes
-if (version_compare(PHP_VERSION,'5.0')<0) {
-	$tbsFileName = $dir_tbs.'/tbs_class_php4.php';
+if (version_compare(PHP_VERSION, '5.4') < 0) {
+    // "@" is in order to avoid Deprecated warnings
+   @require_once("{$dir_testu}/simpletest/simpleTest.php");
+   @require_once("{$dir_testu}/simpletest/unit_tester.php");
+    require_once("{$dir_testu}/simpletest/reporter.php");
+   @require_once("{$dir_testu}/simpletest/mock_objects.php");
 } else {
-	$tbsFileName = $dir_tbs.'/tbs_class.php';
+    require_once "{$dir_tbs}/vendor/autoload.php";
 }
+
 require_once($tbsFileName);
-require_once($dir_plugins.'/tbs_plugin_html.php');
-require_once($dir_plugins.'/tbs_plugin_bypage.php');
-require_once($dir_plugins.'/tbs_plugin_cache.php');
-require_once($dir_plugins.'/tbs_plugin_mergeonfly.php');
-require_once($dir_plugins.'/tbs_plugin_navbar.php');
-// @require_once($dir_plugins.'/tbs_plugin_ref.php');
-// @require_once($dir_plugins.'/tbs_plugin_syntaxes.php');
 
 // other files required for unit tests
-require_once($dir_testu.'/include/TBSUnitTestCase.php');
-require_once($dir_testu.'/include/HtmlCodeCoverageReporter.php');
+require_once("{$dir_testu}/include/TBSUnitTestCase.php");
+
+if (PHP_SAPI === 'cli') { // Text output
+    require_once("{$dir_testu}/include/TextCoverageReporter.php");
+    $reporter = new TextCoverageReporter();
+} else {                  // HTML output
+    require_once("{$dir_testu}/include/HtmlCodeCoverageReporter.php");
+    $reporter = new HtmlCodeCoverageReporter(array($tbsFileName));
+}
 
 // include unit test classes
-include($dir_testu.'/testcase/AttTestCase.php');
-include($dir_testu.'/testcase/QuoteTestCase.php');
-include($dir_testu.'/testcase/FrmTestCase.php');
-include($dir_testu.'/testcase/StrconvTestCase.php');
-include($dir_testu.'/testcase/FieldTestCase.php');
-include($dir_testu.'/testcase/BlockTestCase.php');
-include($dir_testu.'/testcase/MiscTestCase.php');
-include($dir_testu.'/testcase/SubTplTestCase.php');
-include($dir_testu.'/testcase/DataSourceTestCase.php');
+include("{$dir_testu}/testcase/AttTestCase.php");
+include("{$dir_testu}/testcase/QuoteTestCase.php");
+include("{$dir_testu}/testcase/FrmTestCase.php");
+include("{$dir_testu}/testcase/StrconvTestCase.php");
+include("{$dir_testu}/testcase/FieldTestCase.php");
+include("{$dir_testu}/testcase/BlockTestCase.php");
+include("{$dir_testu}/testcase/MiscTestCase.php");
+include("{$dir_testu}/testcase/SubTplTestCase.php");
+include("{$dir_testu}/testcase/DataSourceTestCase.php");
 
 // launch tests
-
+$SimpleTest = new SimpleTest();
 $tbs = new clsTinyButStrong();
-$test = new GroupTest('TinyButStrong v'.$tbs->Version.' (with PHP '.PHP_VERSION.')');
-$test->addTestCase(new FieldTestCase());
-$test->addTestCase(new BlockTestCase());
-$test->addTestCase(new AttTestCase());
-$test->addTestCase(new QuoteTestCase());
-$test->addTestCase(new FrmTestCase());
-$test->addTestCase(new StrconvTestCase());
-$test->addTestCase(new MiscTestCase());
-$test->addTestCase(new SubTplTestCase());
-$test->addTestCase(new DataSourceTestCase());
-$test->run(new HtmlCodeCoverageReporter(array($tbsFileName, $dir_tbs.'/plugins/')));
+$test = new TestSuite('TinyButStrong v' . $tbs->Version . ' (with PHP ' . PHP_VERSION . ', simpleTest ' . $SimpleTest->getVersion() . ')');
 
+$test->add(new FieldTestCase());
+$test->add(new BlockTestCase());
+$test->add(new AttTestCase());
+$test->add(new QuoteTestCase());
+$test->add(new FrmTestCase());
+$test->add(new StrconvTestCase());
+$test->add(new MiscTestCase());
+$test->add(new SubTplTestCase());
+$test->add(new DataSourceTestCase());
+
+$test->run($reporter);

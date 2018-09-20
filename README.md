@@ -16,13 +16,11 @@ http://www.tinybutstrong.com/manual.php
 
 TinyButStrong in on GitHub since version 3.5.3.
 
-TinyButStrong versions 3.10.0 or later can be installed with [Composer](http://getcomposer.org/download/).
+TinyButStrong versions 3.10.1 or later can be installed with [Composer](http://getcomposer.org/download/).
 
 The package is "tinybutstrong/tinybutstrong" 
 
-
 # Features:
----------------
 
 Added sorting blocks (arrays only) by custom field as int, float, string or by natural algorithm. Also can be used for subblocks.
 
@@ -106,6 +104,24 @@ Template:
 		<p>Players at the <b>Level [myblock.level;block=div;groupby level into players;sub1=players]</b>:</p>
 		<ul>
 			<li>[myblock_sub1.player;block=li]</li>
+		</ul>
+	</div>
+
+Result:
+
+	<div>
+		<p>Players at the <b>Level 1</b>:</p>
+		<ul>
+			<li>Player 1</li>
+			<li>Player 4</li>
+		</ul>
+	</div>
+	<div>
+		<p>Players at the <b>Level 2</b>:</p>
+		<ul>
+			<li>Player 2</li>
+			<li>Player 3</li>
+			<li>Player 5</li>
 		</ul>
 	</div>
 

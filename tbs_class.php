@@ -3,7 +3,7 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.11.5 for PHP 5.0
+ * @version 3.11.8 for PHP >=5.0
  * @date    2017-06-14
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
@@ -75,6 +75,21 @@ class clsTbsDataSource {
 	public $OnDataPrmDone = array();
 	public $OnDataPi = false;
 	private $SortFields = array();
+	public static $FilterOrders = array(
+		'count'      => 'count',
+		'empty'      => 'empty',
+		'in_array'   => 'in_array',
+		'is_array'   => 'is_array',
+		'is_bool'    => 'is_bool',
+		'is_float'   => 'is_float',
+		'is_int'     => 'is_int',
+		'is_null'    => 'is_null',
+		'is_numeric' => 'is_numeric',
+		'is_object'  => 'is_object',
+		'is_scalar'  => 'is_scalar',
+		'is_string'  => 'is_string',
+		'key_exist'  => 'key_exist',
+	);
 	public static $SortOrders = array(
 		'nat'   => array('conv' => false, 'func' => 'strnatcasecmp'),   // default
 		'int'   => array('conv' => true,  'func' => 'intval'),
@@ -84,7 +99,7 @@ class clsTbsDataSource {
 	public static $CalcOrders = array(
 		'sum'   => 'clsTbsDataSource::DataCalcSum',   // default
 		'count'   => 'clsTbsDataSource::DataCalcCount',
-//		'uniques'   => 'clsTbsDataSource::DataCalcCount',
+//		'uniques'   => 'clsTbsDataSource::DataCalcCount', # todo
 	);
 
 	public static function DataCalcSum($data) {
@@ -105,6 +120,12 @@ class clsTbsDataSource {
 		return count($data);
 	}
 
+	/**
+	 * Get value from object or array by property name or key
+	 * @param $el array|object
+	 * @param $fld int|string|int[]|string[]
+	 * @return mixed|null
+	 */
 	public static function getVal(&$el, $fld) {
 		$args = func_get_args();
 		array_shift($args);
@@ -127,6 +148,56 @@ class clsTbsDataSource {
 			else break;
 		}
 		return $ret;
+	}
+
+	/**
+	 * Replace all 'quoted values' to numeric vars like $1,$2...
+	 * @param $line
+	 * @return false|array String and vars
+	 */
+	public static function ReplaceQuotedValues($line) {
+		# find 'values' and replace
+		$pos = 0;
+		$varNum = 1;
+		$vars = array();
+		while (false !== ($pos = strpos($line, "'", $pos))) {
+			$clPos = $pos + 1;
+			while (true) {
+				#find closer '
+				$clPos = strpos($line, "'", $clPos);
+				if ($clPos === false) {
+					// $this->DataAlert('Filtering failed: can\'t found the end of the quot');
+					return false;
+				}
+				++$clPos;
+				# if escaped ' as \' ## unsupported by TBS
+				if (($clPos - $pos - 1 - strlen(rtrim(substr($line, $pos, $clPos - $pos - 1), '\\'))) % 2 === 1) {
+					// die;
+					continue;
+				}
+				$vars[$varNum] = array(
+					'index' => $varNum,
+					'start' => $pos,
+					'stop'  => $clPos,
+					'value' => str_replace('\\\'', '\'', substr($line, $pos + 1, $clPos - $pos - 2))
+				);
+				++$varNum;
+				break;
+			};
+			$pos = $clPos;
+		}
+		# replace quoted values
+		if (!$vars)
+			return array($line, array());
+
+		$str = '';
+		$pos = 0;
+		foreach ($vars as $rep) {
+			$str .= substr($line, $pos, $rep['start'] - $pos) . " \${$rep['index']} ";
+			$pos = $rep['stop'];
+		}
+		$str .= substr($line, $pos);
+		return array($str, $vars);
 	}
 
 	public function DataAlert($Msg) {
@@ -844,15 +915,15 @@ class clsTbsDataSource {
 						foreach ($calcs as $ck => $calc) {
 							$group[$calc['to']] = call_user_func(self::$CalcOrders[$calc['fn']], $vals[$ck]);
 						}
-//					var_dump($group);
-//					die;
+					// var_dump($group);
+					// die;
 					}
 					unset($group);
 				}
 			}
-//		var_dump($strCalc);
-//		var_dump($m);
-//		die;
+		// var_dump($strCalc);
+		// var_dump($m);
+		// die;
 		}
 
 		$this->SrcId = $resetKeys ? array_values($values) : $values;
@@ -890,6 +961,206 @@ class clsTbsDataSource {
 		if (!usort($this->SrcId, array($this, 'SortCompare'))) {
 			$this->DataAlert('Sorting failed.');
 			return false;
+		}
+		return true;
+	}
+
+	public function DataFilter($params) {
+		if ($this->Type != 0) {
+			$this->DataAlert('Filtering failed: function can be used only for arrays');
+			return false;
+		}
+
+		# find 'values' and replace
+		$arr = self::ReplaceQuotedValues($params);
+		if (!$arr) {
+			$this->DataAlert('Filtering failed: can\'t parse the values in quotes');
+			return false;
+		}
+		$vars = $arr[1];
+
+		# parse expression
+		$paramsOR = explode('|', $arr[0]);
+		$or = array();
+		foreach ($paramsOR as $lineOR) {
+			$paramsAND = explode('&', $lineOR);
+			$and = array();
+			foreach ($paramsAND as $lineAND) {
+				$lineAND = trim($lineAND);
+				if ($lineAND === '')
+					continue;
+				# Property as bool
+				if (preg_match('#^(\\!?\s*[a-z_0-9\\.]+)$#i', $lineAND, $tmp)) {
+					$tmpArr = array(
+						'type' => 'prop',
+						'not'  => substr($tmp[1], 0, 1) === '!',
+					);
+					$tmpArr['fields'] = explode('.', $tmpArr['not'] ? ltrim(substr($tmp[1], 1)) : $tmp[1]);
+					$and[] = $tmpArr;
+					// echo " >>  var detected: {$tmp[1]}\n";
+				}
+				# Callback
+				if (preg_match('#^(?<fn>\\!?\s*[a-z_0-9]+)\s*\\((?<args>(?:(?:\s*\\,)*\s*(?>[a-z_0-9\\.\\-]+|\\$[0-9]+)\s*(?:\s*\\,)*\s*)*)\\)$#i', $lineAND, $tmp)) {
+					$tmpArr = array(
+						'type'   => 'call',
+						'not'    => substr($tmp['fn'], 0, 1) === '!',
+						'params' => array(),
+					);
+					$tmpParams = trim($tmp['args']) === '' ? array() : explode(',', $tmp['args']);
+					$tmpArr['function'] = $tmpArr['not'] ? ltrim(substr($tmp['fn'], 1)) : $tmp['fn'];
+					if (!key_exists($tmpArr['function'], self::$FilterOrders)) {
+						$this->DataAlert("Filtering failed: function {$tmpArr['function']} not found in clsTbsDataSource::\$FilterOrders");
+						return false;
+					}
+					if (!is_callable(self::$FilterOrders[$tmpArr['function']])) {
+						$this->DataAlert("Filtering failed: function {$tmpArr['function']} is not callable");
+						return false;
+					}
+					foreach ($tmpParams as $val) {
+						$val = trim($val);
+						# void
+						if ($val === '') {
+							$tmpArr['params'][] = array('value', null);
+							continue;
+						}
+						# quoted value
+						if (substr($val, 0, 1) === '$') {
+							$num = (int)substr($val, 1);
+							if (!isset($vars[$num])) {
+								$this->DataAlert("Filtering failed: quoted value \${$num} not found");
+								return false;
+							}
+							$tmpArr['params'][] = array('value', &$vars[$num]['value']);
+							continue;
+						}
+						# numeric value
+						if (is_numeric($val)) {
+							$tmpArr['params'][] = array('value', $val);
+							continue;
+						}
+						# property
+						$tmpArr['params'][] = array('prop', explode('.', $val));
+					}
+					// echo " >>  callback detected: {$tmp[1]}(" . implode(', ', $tmpArr['params']) . ")\n";
+					$and[] = $tmpArr;
+				}
+				# Conditions
+				if (preg_match('#^([a-z_0-9\\.\\-]+?|\\$[0-9]+)\s*([\\!\\+\\-\\=\\~]{1,3})\s*([a-z_0-9\\.\\-]+|\\$[0-9]+)$#i', $lineAND, $tmp)) {
+					$tmpArr = array(
+						'type' => 'cond',
+						'op' => $tmp[2],
+					);
+					$ops = array('o1' => $tmp[1], 'o2' => $tmp[3]);
+					foreach ($ops as $key => $val) {
+						# quoted value
+						if (substr($val, 0, 1) === '$') {
+							$num = (int)substr($val, 1);
+							if (!isset($vars[$num])) {
+								$this->DataAlert("Filtering failed: quoted value \${$num} not found");
+								return false;
+							}
+							$tmpArr[$key] = array('value', &$vars[$num]['value']);
+							continue;
+						}
+						# numeric value
+						if (is_numeric($val)) {
+							$tmpArr[$key] = array('value', $val);
+							continue;
+						}
+						# property
+						$tmpArr[$key] = array('prop', explode('.', $val));
+					}
+					// echo " >>  expression detected: {$tmp[1]} {$tmp[2]} {$tmp[3]} \n";
+					$and[] = $tmpArr;
+				}
+
+			}
+			if ($and)
+				$or[] = $and;
+		}
+		if (!$or)
+			return false;
+
+		# filter values
+		foreach ($this->SrcId as $key => $value) {
+			$okOr = false;
+			# 'or' list
+			foreach ($or as &$ands) {
+				# 'and' list
+				foreach ($ands as &$cond) {
+					$ok = false;
+					switch ($cond['type']) {
+						case 'prop' :
+							$ok = (bool)self::getVal($value, $cond['fields']);
+							if ($cond['not'])
+								$ok = !$ok;
+							break;
+						case 'call' :
+							$fn = $cond['function'];
+							$params = array();
+							foreach ($cond['params'] as $param) {
+								if ($param[0] === 'value')
+									$params[] = $param[1];
+								elseif ($param[0] === 'prop')
+									$params[] = self::getVal($value, $param[1]);
+							}
+							if ($params) {
+								$ok = call_user_func_array(self::$FilterOrders[$fn], $params);
+							}
+							else
+								$ok = call_user_func(self::$FilterOrders[$fn], $value);
+							if ($cond['not'])
+								$ok = !$ok;
+							break;
+						case 'cond' :
+							# o1
+							if ($cond['o1'][0] === 'value')
+								$o1 = $cond['o1'][1];
+							elseif ($cond['o1'][0] === 'prop')
+								$o1 = self::getVal($value, $cond['o1'][1]);
+							# o2
+							if ($cond['o2'][0] === 'value')
+								$o2 = $cond['o2'][1];
+							elseif ($cond['o2'][0] === 'prop')
+								$o2 = self::getVal($value, $cond['o2'][1]);
+							# ope
+							switch ($cond['op']) {
+								case '==' :
+								case '=' :
+									$ok = strcasecmp($o1, $o2) == 0;
+									break;
+								case '!=' :
+									$ok = strcasecmp($o1, $o2) != 0;
+									break;
+								case '~=' :
+									$ok = preg_match($o1, $o2) > 0;
+									break;
+								case '+-' :
+									$ok = $o1 > $o2;
+									break;
+								case '-+' :
+									$ok = $o1 < $o2;
+									break;
+								case '+=-' :
+									$ok = $o1 >= $o2;
+									break;
+								case '-=+' :
+									$ok = $o1 <= $o2;
+									break;
+								default:
+									$this->DataAlert("Filtering failed: undefined operator {$cond['op']}");
+									// return false;
+							}
+							break;
+					}
+					if (!$ok)
+						continue 2; # go to next OR condition
+				}
+				$okOr = true;
+			}
+			// unset($value);
+			if (!$okOr)
+				unset($this->SrcId[$key]);
 		}
 		return true;
 	}
@@ -940,7 +1211,7 @@ class clsTinyButStrong {
 	public $ExtendedMethods = array();
 	public $ErrCount = 0;
 // Undocumented (can change at any version)
-	public $Version = '3.11.5';
+	public $Version = '3.11.8';
 	public $Charset = '';
 	public $TurboBlock = true;
 	public $VarPrefix = '';
@@ -1151,7 +1422,7 @@ class clsTinyButStrong {
 		$P1 = false;
 		$Mode = ($DefTags) ? 3 : 2;
 		$PosBeg1 = 0;
-        $PosSep = 0;
+		$PosSep = 0;
 		while ($Loc = $this->meth_Locator_FindBlockNext($this->Source,$BlockName,$Pos,'.',$Mode,$P1,$FieldOutside)) {
 			$Nbr++;
 			$Sep = '';
@@ -2622,6 +2893,21 @@ class clsTinyButStrong {
 				$WasP1 = false;
 			}
 
+			foreach ($LocR->PrmLst as $PrmKey => $PrmVal) {
+				if ($PrmKey === 'groupby') {
+					$Src->DataGroup(
+						$PrmVal,
+						isset($LocR->PrmLst['groupcalc']) ? $LocR->PrmLst['groupcalc'] : null
+					);
+				}
+				if ($PrmKey === 'sortby') {
+					$Src->DataSort($PrmVal);
+				}
+				if ($PrmKey === 'filter') {
+					$Src->DataFilter($PrmVal);
+				}
+			}
+
 			// Open the recordset
 			if ($QueryOk) {
 				if ((!$LocR->BlockFound) && (!$LocR->FieldOutside)) {
@@ -2639,13 +2925,6 @@ class clsTinyButStrong {
 						if ($WasP1) {	$WasP1 = false;} else {$LocR->FieldOutside = false;} // prevent from infinit loop
 					}
 				}
-			}
-
-			if (isset($LocR->PrmLst['groupby'])) {
-				$Src->DataGroup($LocR->PrmLst['groupby'], isset($LocR->PrmLst['groupcalc']) ? $LocR->PrmLst['groupcalc'] : null);
-			}
-			if (isset($LocR->PrmLst['sortby'])) {
-				$Src->DataSort($LocR->PrmLst['sortby']);
 			}
 
 			// Merge sections

@@ -149,4 +149,24 @@ You can add the custom calculating rule:
 
 Format:
 
-> [block...;_groupby FieldName1 [ on **key** ][ asFlags [ **flagFieldName** ]], ..., [ into GroupName]_;...]
+> [...;block...;_groupby FieldName1 [ on **key** ][ asFlags [ **flagFieldName** ]], ..., [ into GroupName]_;...]
+
+## Filter
+
+> [myBlock;block=...;_filter some.property || callable() && prop.subprop +- 0 || in_array('foo', prop, 1) || !is_null(prop1)_;...]
+
+&, && = AND \
+|, || = OR \
+__some.property__ - compare property as bool \
+__callable()__ - run callable($element); All callable functions collect in `clsTbsDataSource::$FilterOrders`
+__prop.subprop +- 0__ - conditions... [see about +- -+ +=- -=+ and other](http://www.tinybutstrong.com/manual.php#html_field_prm_if)
+__in_array('foo', prop, 1)__ - run callable with custom params
+__!is_null(prop1)__ - you can use `!` before callable or property as logical NOT: `!callable()`, `!property`
+
+
+---
+
+/!\ for more information, see the tests: `testunit/testcase/DataSourceTestCase.php` \
+Compatible with php 5!\
+To run the test, run `composer test`. But before that run `composer update` \
+

@@ -3,7 +3,7 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.11.8 for PHP >=5.0
+ * @version 3.11.9 for PHP >=5.0
  * @date    2017-06-14
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
@@ -1081,6 +1081,7 @@ class clsTbsDataSource {
 		if (!$or)
 			return false;
 
+		$keysToDel = array();
 		# filter values
 		foreach ($this->SrcId as $key => $value) {
 			$okOr = false;
@@ -1160,7 +1161,14 @@ class clsTbsDataSource {
 			}
 			// unset($value);
 			if (!$okOr)
-				unset($this->SrcId[$key]);
+				$keysToDel[] = $key;
+		}
+		if ($keysToDel) {
+			$values = $this->SrcId;
+			foreach ($keysToDel as $key)
+				unset($values[$key]);
+			unset($this->SrcId); # destroy link for subblocks
+			$this->SrcId = &$values;
 		}
 		return true;
 	}
@@ -1211,7 +1219,7 @@ class clsTinyButStrong {
 	public $ExtendedMethods = array();
 	public $ErrCount = 0;
 // Undocumented (can change at any version)
-	public $Version = '3.11.8';
+	public $Version = '3.11.9';
 	public $Charset = '';
 	public $TurboBlock = true;
 	public $VarPrefix = '';

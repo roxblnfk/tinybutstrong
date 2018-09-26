@@ -1,3 +1,6 @@
+= TinyButStrong 3.11.8 =
+
+* Added the FILTER function for blocks and subblocks
 
 = TinyButStrong 3.11.5 =
 
@@ -9,7 +12,7 @@ roxblnfk, 2017-06-14
   Exaple: groupby Field [on Key] [asFlags [FlagField]] [into GroupField]
 * Added calculating for 'groupby' operations (basic: 'sum', 'count').
   Exaple: [...groupby...; groupcalc count ID into LinesCount, sum Money into Money_sum]
-  
+
 ------------------------------------
 
 = TinyButStrong 3.11.0 =
@@ -20,6 +23,16 @@ roxblnfk, 2016-05-13
 
 * Added sorting blocks by custom fields (arrays only)
 * Added regrouping blocks to subblocks by custom fields (arrays only)
+
+> Release 3.11.0 by Skrol29
+
+* $TBS->GetAttValue() enables to read a current attribute in an HTML or XML element where a TBS fields is placed.
+* parameter 'combo' enables to define a set of parameters to be reused.
+* (todo) parameter 'attstop' cancel the att search if this entity is found.
+* (todo) $TBS->StrReplace(array($what=>$with)) // literal
+         $TBS->StrReplace(array($what=>$with), true); // fields
+         $TBS->StrReplace(array($what=>$with), $BlocName); // block's fields
+
   
 ------------------------------------
 

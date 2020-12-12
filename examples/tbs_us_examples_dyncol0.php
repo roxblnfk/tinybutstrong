@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 $TBS = new clsTinyButStrong;
 $TBS->LoadTemplate('tbs_us_examples_dyncol0.htm');
@@ -33,4 +33,3 @@ $TBS->MergeBlock('c0,c1,c2',$columns);
 $TBS->MergeBlock('r',$data);
 $TBS->Show();
 
-?>

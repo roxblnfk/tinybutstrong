@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 include_once('tbs_plugin_html.php'); // Plug-in for selecting HTML items.
 
 $TBS = new clsTinyButStrong;
@@ -33,4 +33,3 @@ if (!isset($_POST['x_type'])) {
 
 $TBS->Show();
 
-?>

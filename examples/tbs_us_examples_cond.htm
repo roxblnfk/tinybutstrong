@@ -1,5 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE HTML>
+<html lang="en">
 <head>
 <title>TinyButStrong - Example of conditional blocks</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -26,8 +26,8 @@ function f_Select() {
 </script>
 </head>
 <body>
-<h1>Example of conditional blocks</h1>
 <div id="main-body">
+  <h1>Example of conditional blocks</h1>
   <div class="w3cinfo"> this TBS template is W3C compliant <a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-xhtml11" alt="Valid XHTML 1.1" height="31" width="88" style="border:none;" /></a> </div>
   <div id="example">
     <p>Conditional Blocks enable you to display or hide an area according to a condition.</p>
@@ -46,7 +46,7 @@ function f_Select() {
       </tr>
     </table>
     <form action="[onshow..script_name]" method="post" id="frm_condition">
-      <div style="text-align:center;">Select a block to display:
+      <p style="text-align:center;">Select a block to display:
         <select name="lst_block" class="normal" id="lst_block" onchange="javascript:f_Select()">
           <option value="0">&lt;select a block&gt;</option>
           <option value="1">Block 1</option>
@@ -54,7 +54,7 @@ function f_Select() {
           <option value="3">Block 3</option>
           <option value="x">[onshow.blk_id;ope=html;select]</option>
         </select>
-      </div>
+      </p>
     </form>
   </div>
 </div>

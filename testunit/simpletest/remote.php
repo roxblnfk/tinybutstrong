@@ -30,7 +30,7 @@ class RemoteTestCase {
      *    @param string $dry_url   Location for dry run.
      *    @access public
      */
-    function RemoteTestCase($url, $dry_url = false) {
+    function __construct($url, $dry_url = false) {
         $this->_url = $url;
         $this->_dry_url = $dry_url ? $dry_url : $url;
         $this->_size = false;
@@ -75,7 +75,7 @@ class RemoteTestCase {
      *    @access protected
      */
     function &_createBrowser() {
-        $browser = &new SimpleBrowser();
+        $browser = new SimpleBrowser();
         return $browser;
     }
     
@@ -86,7 +86,7 @@ class RemoteTestCase {
      *    @access protected
      */
     function &_createParser(&$reporter) {
-        $parser = &new SimpleTestXmlParser($reporter);
+        $parser = new SimpleTestXmlParser($reporter);
         return $parser;
     }
     
@@ -103,7 +103,7 @@ class RemoteTestCase {
                 trigger_error('Cannot read remote test URL [' . $this->_dry_url . ']');
                 return false;
             }
-            $reporter = &new SimpleReporter();
+            $reporter = new SimpleReporter();
             $parser = &$this->_createParser($reporter);
             if (! $parser->parse($xml)) {
                 trigger_error('Cannot parse incoming XML from [' . $this->_dry_url . ']');

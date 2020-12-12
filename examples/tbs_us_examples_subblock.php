@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 // Create data
 $TeamList[0] = array('team'=>'Eagle'  ,'total'=>'458');
@@ -27,4 +27,3 @@ $TBS->MergeBlock('sb','array','TeamList[%p1%][matches]');
 
 $TBS->Show();
 
-?>

@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 $data_array[] = array('res_name'=>'Marie',  'res_score'=>300, 'res_date'=>'2003-01-10');
 $data_array[] = array('res_name'=>'Eric', 'res_score'=>215, 'res_date'=>'2003-01-10');
@@ -26,4 +26,3 @@ function m_event_b1($BlockName,&$CurrRec,$RecNum){
   if ($CurrRec['res_score']>=300) $CurrRec['level'] = '<font color="#CCCC00"><strong>excellent</strong></font>';
 }
 
-?>

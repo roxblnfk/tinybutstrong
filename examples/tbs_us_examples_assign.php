@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 $data = array();
 $data[] = array('cmt'=>'Assigned data');
@@ -23,4 +23,3 @@ $TBS->MergeBlock('expl_2', 'assigned');
 
 $TBS->Show();
 
-?>

@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 $name1 = 'Marilyn Monroe';
 $name2 = 'Fred Astaire';
@@ -15,4 +15,3 @@ $TBS = new clsTinyButStrong;
 $TBS->LoadTemplate('tbs_us_examples_prmope.htm');
 $TBS->Show();
 
-?>

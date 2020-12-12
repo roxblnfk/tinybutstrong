@@ -28,7 +28,7 @@ class SimpleRoute {
      *    @param SimpleUrl $url   URL as object.
      *    @access public
      */
-    function SimpleRoute($url) {
+    function __construct($url) {
         $this->_url = $url;
     }
     
@@ -98,9 +98,9 @@ class SimpleRoute {
      */
     function &_createSocket($scheme, $host, $port, $timeout) {
         if (in_array($scheme, array('https'))) {
-            $socket = &new SimpleSecureSocket($host, $port, $timeout);
+            $socket = new SimpleSecureSocket($host, $port, $timeout);
         } else {
-            $socket = &new SimpleSocket($host, $port, $timeout);
+            $socket = new SimpleSocket($host, $port, $timeout);
         }
         return $socket;
     }
@@ -125,7 +125,7 @@ class SimpleProxyRoute extends SimpleRoute {
      *    @param string $password   Password for autentication.
      *    @access public
      */
-    function SimpleProxyRoute($url, $proxy, $username = false, $password = false) {
+    function __construct($url, $proxy, $username = false, $password = false) {
         $this->SimpleRoute($url);
         $this->_proxy = $proxy;
         $this->_username = $username;
@@ -208,7 +208,7 @@ class SimpleHttpRequest {
      *                                           request.
      *    @access public
      */
-    function SimpleHttpRequest(&$route, $encoding) {
+    function __construct(&$route, $encoding) {
         $this->_route = &$route;
         $this->_encoding = $encoding;
         $this->_headers = array();
@@ -279,7 +279,7 @@ class SimpleHttpRequest {
      *    @access protected
      */
     function &_createResponse(&$socket) {
-        $response = &new SimpleHttpResponse(
+        $response = new SimpleHttpResponse(
                 $socket,
                 $this->_route->getUrl(),
                 $this->_encoding);
@@ -307,7 +307,7 @@ class SimpleHttpHeaders {
      *    @param string $headers     Header block.
      *    @access public
      */
-    function SimpleHttpHeaders($headers) {
+    function __construct($headers) {
         $this->_raw_headers = $headers;
         $this->_response_code = false;
         $this->_http_version = false;
@@ -494,7 +494,7 @@ class SimpleHttpResponse extends SimpleStickyError {
      *    @param mixed $encoding        Record of content sent.
      *    @access public
      */
-    function SimpleHttpResponse(&$socket, $url, $encoding) {
+    function __construct(&$socket, $url, $encoding) {
         $this->SimpleStickyError();
         $this->_url = $url;
         $this->_encoding = $encoding;
@@ -516,13 +516,13 @@ class SimpleHttpResponse extends SimpleStickyError {
     function _parse($raw) {
         if (! $raw) {
             $this->_setError('Nothing fetched');
-            $this->_headers = &new SimpleHttpHeaders('');
+            $this->_headers = new SimpleHttpHeaders('');
         } elseif (! strstr($raw, "\r\n\r\n")) {
             $this->_setError('Could not split headers from content');
-            $this->_headers = &new SimpleHttpHeaders($raw);
+            $this->_headers = new SimpleHttpHeaders($raw);
         } else {
             list($headers, $this->_content) = split("\r\n\r\n", $raw, 2);
-            $this->_headers = &new SimpleHttpHeaders($headers);
+            $this->_headers = new SimpleHttpHeaders($headers);
         }
     }
     

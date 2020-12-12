@@ -45,6 +45,10 @@ class SimpleTestCase {
     var $_observers;
     var $_should_skip = false;
 
+    function __construct($label = false) {
+		$this->SimpleTestCase($label);
+	}
+
     /**
      *    Sets up the test with no display.
      *    @param string $label    If no test name is given then
@@ -55,7 +59,7 @@ class SimpleTestCase {
         if ($label) {
             $this->_label = $label;
         }
-    }
+    }	
 
     /**
      *    Accessor for the test name for subclasses.
@@ -107,9 +111,10 @@ class SimpleTestCase {
      *    @access public
      */
     function &createInvoker() {
-        $invoker = &new SimpleErrorTrappingInvoker(new SimpleInvoker($this));
+		$obj = new SimpleInvoker($this);
+        $invoker = new SimpleErrorTrappingInvoker($obj);
         if (version_compare(phpversion(), '5') >= 0) {
-            $invoker = &new SimpleExceptionTrappingInvoker($invoker);
+            $invoker = new SimpleExceptionTrappingInvoker($invoker);
         }
         return $invoker;
     }
@@ -123,7 +128,7 @@ class SimpleTestCase {
      *    @access public
      */
     function run(&$reporter) {
-        $context = &SimpleTest::getContext();
+        $context = SimpleTest::getContext();
         $context->setTest($this);
         $context->setReporter($reporter);
         $this->_reporter = &$reporter;
@@ -305,7 +310,7 @@ class SimpleTestCase {
      *    @return boolean                        True on pass
      *    @access public
      */
-    function assert(&$expectation, $compare, $message = '%s') {
+    function assert($expectation, $compare, $message = '%s') {
         if ($expectation->test($compare)) {
             return $this->pass(sprintf(
                     $message,
@@ -463,11 +468,11 @@ class SimpleFileLoader {
      */
     function &createSuiteFromClasses($title, $classes) {
         if (count($classes) == 0) {
-            $suite = &new BadTestSuite($title, "No runnable test cases in [$title]");
+            $suite = new BadTestSuite($title, "No runnable test cases in [$title]");
             return $suite;
         }
         SimpleTest::ignoreParentsIfIgnored($classes);
-        $suite = &new TestSuite($title);
+        $suite = new TestSuite($title);
         foreach ($classes as $class) {
             if (! SimpleTest::isIgnored($class)) {
                 $suite->addTestClass($class);
@@ -494,7 +499,7 @@ class TestSuite {
      *                            of the test.
      *    @access public
      */
-    function TestSuite($label = false) {
+    function __construct($label = false) {
         $this->_label = $label;
         $this->_test_cases = array();
     }
@@ -517,7 +522,7 @@ class TestSuite {
     /**
      *    @deprecated
      */
-    function addTestCase(&$test_case) {
+    function addTestCase($test_case) {
         $this->_test_cases[] = &$test_case;
     }
 
@@ -526,7 +531,7 @@ class TestSuite {
      */
     function addTestClass($class) {
         if (TestSuite::getBaseTestCase($class) == 'testsuite') {
-            $this->_test_cases[] = &new $class();
+            $this->_test_cases[] = new $class();
         } else {
             $this->_test_cases[] = $class;
         }
@@ -544,7 +549,7 @@ class TestSuite {
         if (! is_string($test_case)) {
             $this->_test_cases[] = &$test_case;
         } elseif (TestSuite::getBaseTestCase($class) == 'testsuite') {
-            $this->_test_cases[] = &new $class();
+            $this->_test_cases[] = new $class();
         } else {
             $this->_test_cases[] = $class;
         }
@@ -586,12 +591,12 @@ class TestSuite {
      *    @param SimpleReporter $reporter    Current test reporter.
      *    @access public
      */
-    function run(&$reporter) {
+    function run($reporter) {
         $reporter->paintGroupStart($this->getLabel(), $this->getSize());
         for ($i = 0, $count = count($this->_test_cases); $i < $count; $i++) {
             if (is_string($this->_test_cases[$i])) {
                 $class = $this->_test_cases[$i];
-                $test = &new $class();
+                $test = new $class();
                 $test->run($reporter);
                 unset($test);
             } else {
@@ -662,7 +667,7 @@ class BadTestSuite {
      *                            of the test.
      *    @access public
      */
-    function BadTestSuite($label, $error) {
+    function __construct($label, $error) {
         $this->_label = $label;
         $this->_error = $error;
     }

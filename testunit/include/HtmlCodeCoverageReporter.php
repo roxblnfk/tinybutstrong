@@ -5,7 +5,7 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 	var $code_coverage = array();
 	var $code_coverage_include_paths = array();
 	var $code_coverage_exclude_paths = array();
-	var $character_set;
+	var $character_set = 'utf-8';
 	var $time = 0;
 
 	/**
@@ -14,8 +14,7 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 	 * @param mixed $excludePaths      array or string of file or dir path to exclude from code coverage
 	 */
 	function __construct($includePaths, $excludePaths = null) {
-		parent::__construct('utf-8');
-		$this->character_set = 'utf-8';
+	    parent::__construct($this->character_set);
 		if (is_array($includePaths)) {
 			foreach ($includePaths as $includePath)
 				$this->code_coverage_include_paths[] = $this->cleanDirecory($includePath);
@@ -201,4 +200,5 @@ class HtmlCodeCoverageReporter extends HtmlReporter {
 			" table#coverage td.high { background-color: #8ee034; color: black; text-align: center; padding: 0.1em 1em; }" .
 			" table#coverage td { background-color: #d4d7d0; color: black; text-align: left; padding: 0.1em 1em; }";
 	}
+	
 }

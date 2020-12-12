@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 $TBS = new clsTinyButStrong;
 
 include_once('tbs_plugin_cache.php');   // Load the Cache System library
@@ -13,4 +13,3 @@ if ($TBS->PlugIn(TBS_CACHE,'testcache',10)) {
 	$TBS->Show();
 }
 	
-?>

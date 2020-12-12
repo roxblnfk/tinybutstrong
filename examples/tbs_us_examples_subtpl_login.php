@@ -5,7 +5,7 @@ if (isset($this)) {
 	$TBS = &$this;
 } else {
   // This sub-script can also be run under the normal mode => its corresponding template will be displayed like a main template.
-	include_once('tbs_class.php');
+	include_once('../tbs_class.php');
 	$TBS = new clsTinyButStrong;
 }
 
@@ -21,4 +21,3 @@ if (isset($_POST['btn_ok'])) {
 $TBS->LoadTemplate('tbs_us_examples_subtpl_login.htm');
 $TBS->Show() ;  // When calling this method in Subtemplate Mode, the main script won't end, and this merged subtemplated will be inserted into the main template.
 
-?>

@@ -41,7 +41,7 @@ class SimpleUrl {
      *    @param string $url        Incoming URL.
      *    @access public
      */
-    function SimpleUrl($url = '') {
+    function __construct($url = '') {
         list($x, $y) = $this->_chompCoordinates($url);
         $this->setCoordinates($x, $y);
         $this->_scheme = $this->_chompScheme($url);
@@ -379,7 +379,7 @@ class SimpleUrl {
      */
     function clearRequest() {
         $this->_raw = false;
-        $this->_request = &new SimpleGetEncoding();
+        $this->_request = new SimpleGetEncoding();
     }
     
     /**

@@ -1,11 +1,14 @@
 <?php
 
+/*
+Main script for running TBS examples.
+*/
+
 // usefull for examples that contains links to this Example Viewer
 $viewer = $_SERVER['SCRIPT_NAME'];
 
 // parameters of this application
-if (!isset($app_folder)) $app_folder = ''; // folder where to find the Example scripts
-if (!isset($app_html)) $app_html = false; // true if the contents must not been dipslay directly, but saved into $app_html for a parent script
+if (!isset($app_html)) $app_html = false; // true if the contents must not been displayed directly, but saved into $app_html for a parent script
 $app_echo = ($app_html===false);
 
 // sub-template
@@ -13,19 +16,29 @@ $s = (isset($_GET['s'])) ? $_GET['s'] : '';
 
 // example do be displayed
 $e = (isset($_GET['e'])) ? $_GET['e'] : '';
-$e_script   = $app_folder.'tbs_us_examples_'.$e.'.php';
-$e_template = $app_folder.'tbs_us_examples_'.$e.(($s=='') ? '' : '_'.$s).'.htm';
+$e_script   = 'tbs_us_examples_'.$e.'.php';
 
-if (!file_exists($e_template)) $e_template = $app_folder.'tbs_us_examples_'.$e.(($s=='') ? '' : '_'.$s).'.txt'; // case of text template
+// Try for the HTML template
+$e_template = 'tbs_us_examples_'.$e.(($s=='') ? '' : '_'.$s).'.htm';
 
-if ( ($e==='') || (!file_exists($e_script)) ) {
-	$e = '-welcome';
-	$e_script   = $app_folder.'tbs_us_examples__welcome.php';
-	$e_template = $app_folder.'tbs_us_examples__welcome.htm';
+// If the HTML template is not found => we try the TXT template
+if (!file_exists($e_template)) {
+	$e_template = 'tbs_us_examples_'.$e.(($s=='') ? '' : '_'.$s).'.txt';
 }
 
+// If no template is found => we display the Welcome part
+if ( ($e==='') || (!file_exists($e_script)) ) {
+	$e = '-welcome';
+	$e_script   = 'tbs_us_examples__welcome.php';
+	$e_template = 'tbs_us_examples__welcome.htm';
+}
+
+// Global variables for the template: links for standalone mode
+$href_script   = $e_script;
+$href_template = $e_template;
+
 // prepare data for retreiving the result of the merge
-$sidebar = $app_folder.'tbs_us_examples__sidebar.htm'; // used by function f_sidebar_getmerged() and plug-in clsMyPluginRenderNothing
+$sidebar = 'tbs_us_examples__sidebar.htm'; // used by function f_sidebar_getmerged() and plug-in clsMyPluginRenderNothing
 $sidebar_landmark = '<div id="main-body">';
 
 // mode
@@ -80,13 +93,16 @@ if ($app_echo) {
 	// Nothing to do. Another script is supposed to get the result in the variable $html. Used in the TinyButStrong web site for example.
 }
 
+// -----------------------------
 // fonction for this application
+// -----------------------------
 
-/* Merges the Side-bar template and return the contents
-*/
+/**
+ * Merges the Side-bar template and return the contents
+ */
 function f_sidebar_getmerged() {
 	global $e, $m, $s, $e_script, $e_template, $sidebar;
-	include_once('tbs_class.php');
+	include_once('../tbs_class.php');
 	$TBS = new clsTinyButStrong;
 	$TBS->Source = '[sidebar;file;getbody=body]';
 	$TBS->MergeField('sidebar', $sidebar);
@@ -94,8 +110,13 @@ function f_sidebar_getmerged() {
 	return $TBS->Source;
 }
 
-/* Create an HTML body for viewing the PHP or HTML colored source
-*/
+/**
+ * Create an HTML body for viewing the PHP or HTML colored source
+ *
+ * @param array $contents An array with items 'file', 'main', 'css', given by f_color_file()
+ *
+ * @return string
+ */
 function f_source_create_html($contents) {
 	$title = 'Source code of '.$contents['file'];
 	return '<!DOCTYPE HTML>
@@ -109,8 +130,8 @@ function f_source_create_html($contents) {
 </style>
 </head>
 <body>
-<h1>' . $title . '</h1>
 <div id="main-body"> 
+  <h1>' . $title . '</h1>
   <div id="example">
   ' . $contents['main'] . '
   </div>
@@ -120,8 +141,9 @@ function f_source_create_html($contents) {
 
 }
 
-/* Color the contents of a file. Can be HTML or PHP.
-   Returns an array with 'main', 'css' and 'file'
+/**
+ * Color the contents of a file. Can be HTML or PHP.
+ *  Returns an array with 'main', 'css' and 'file'
  */
 function f_color_file($file, $ishtml, $lines) {
 
@@ -162,7 +184,8 @@ code {font-family: "Courier New", Courier, monospace; font-size: 12px; white-spa
 	return array('main'=>$x, 'css'=>$style, 'file'=>basename($file));
 }
 
-/* Color a list of tags or all remaing tags with using a CSS class.
+/**
+ * Color a list of tags or all remaing tags with using a CSS class.
  * $txt must be a source code wich is a result of highlight_file().
  */
 function f_color_tag(&$txt, $class, $tag='') {
@@ -212,7 +235,8 @@ function f_color_tag(&$txt, $class, $tag='') {
 	
 }
 
-/* Auto-loaded Plug-in for inserting the side-bar in running examples.
+/**
+ * Auto-loaded Plug-in for inserting the side-bar in running examples.
  */
 class clsMyPluginRenderNothing {
 	function OnInstall() {

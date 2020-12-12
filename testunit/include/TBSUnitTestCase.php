@@ -1,6 +1,6 @@
 <?php
 
-// override unit test case class to simplify tinyButStrong test cases
+// override unit test case  class (unit_tester.php) to simplify tinyButStrong test cases
 class TBSUnitTestCase extends UnitTestCase {
 
 	/**
@@ -109,6 +109,24 @@ class TBSUnitTestCase extends UnitTestCase {
 	}
 
 	/**
+	 * Returns directory of HTML files to compare.
+	 */
+	function getTemplateDir() {
+		return dirname(dirname(__FILE__)).'/template/';
+	}
+	
+	/**
+	 * Test TBS merge result with expected result.
+	 * @param string $expected       expected merge result
+	 * @param string $message        message to display (optional)
+	 * @return boolean               True on pass
+	 */
+	function assertEqualMergeString($expected, $message='%s') {
+        $result = $this->getTBSRender(); 
+		return $this->assertEqual($result, $expected, $message);
+	}
+
+	/**
 	 * Test TBS class with one function.
 	 * @param string $source         source of template
 	 * @param array $vars            associative array of name/value to pass to MergeField
@@ -118,20 +136,12 @@ class TBSUnitTestCase extends UnitTestCase {
 	 */
 	function assertEqualMergeFieldStrings($source, $vars, $result, $message='%s') {
 		$this->createTBSInstance($source);
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeField($name, $value);
+			}
+		}
 		return $this->assertEqualMergeString($result, $message);
-	}
-
-	/**
-	 * Test TBS merge result with expected result.
-	 * @param string $expected       expected merge result
-	 * @param string $message        message to display (optional)
-	 * @return boolean               True on pass
-	 */
-	function assertEqualMergeString($expected, $message='%s') {
-		return $this->assertEqual($this->getTBSRender(), $expected, $message);
 	}
 
 	/**
@@ -144,9 +154,11 @@ class TBSUnitTestCase extends UnitTestCase {
 	function assertErrorMergeFieldString($source, $vars, $message='%s') {
 		$this->createTBSInstance($source);
 		$this->tbs->NoErr = TRUE;
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeField($name, $value);
+			}
+		}
 		$this->getTBSRender();
 		return $this->assertTrue($this->tbs->ErrCount > 0, $message);
 	}
@@ -154,57 +166,96 @@ class TBSUnitTestCase extends UnitTestCase {
 	/**
 	 * Test TBS class with one function. Work only withe 'clear' and array data.
 	 * @param string $source         source of template
-	 * @param array $vars            associative array of name/value to pass to MergeBlock
+	 * @param array  $vars           associative array of name/value to pass to MergeBlock
 	 * @param string $result         merge result to compare
 	 * @param string $message        message to display (optional)
 	 * @return boolean               True on pass
 	 */
-	function assertEqualMergeBlockStrings($source, $vars, $result, $message='%s') {
+	function assertEqualMergeBlockString($source, $vars, $result, $message='%s') {
 		$this->createTBSInstance($source);
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeBlock($name, $value);
+			}
+		}
 		return $this->assertEqualMergeString($result, $message);
 	}
 
 	/**
 	 * Test TBS class errors with one function.
 	 * @param string $source         source of template
-	 * @param array $vars            associative array of name/value to pass to MergeBlock
+	 * @param array  $vars           associative array of name/value to pass to MergeBlock
 	 * @param string $message        message to display (optional)
 	 * @return boolean               True on pass
 	 */
 	function assertErrorMergeBlockString($source, $vars, $message='%s') {
 		$this->createTBSInstance($source);
 		$this->tbs->NoErr = TRUE;
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeBlock($name, $value);
+			}
+		}
 		$this->getTBSRender();
 		return $this->assertTrue($this->tbs->ErrCount > 0, $message);
 	}
 
 	/**
+	 * Test TBS class with one function. Work only withe 'clear' and array data.
+	 * @param string $source         source of template
+	 * @param array  $vars           associative array of name/value to pass to MergeBlock
+	 * @param string $result         merge result to compare
+	 * @param string $message        message to display (optional)
+	 * @return boolean               True on pass
+	 */
+	function assertEqualMergeBlockResult($source, $vars, $result, $message='%s') {
+		$this->createTBSInstance($source);
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
+				$res = $this->tbs->MergeBlock($name, $value);
+			}
+		}
+		return $this->assertIdentical($result, $res , $message);
+	}
+	
+	/**
 	 * Test TBS class with one function. Use 'num' parameter as second MergeBlock parameter.
 	 * @param string $source         source of template
-	 * @param array $vars            associative array of name/value to pass to MergeBlock
+	 * @param array  $vars           associative array of name/value to pass to MergeBlock
 	 * @param string $result         merge result to compare
 	 * @param string $message        message to display (optional)
 	 * @return boolean               True on pass
 	 */
 	function assertEqualMergeNumBlockStrings($source, $vars, $result, $message='%s') {
 		$this->createTBSInstance($source);
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeBlock($name, 'num', $value);
+			}
+		}
+		return $this->assertEqualMergeString($result, $message);
+	}
+	
+	function assertEqualMergeArrayBlockStrings($source, $vars, $result, $message='%s') {
+		$this->createTBSInstance($source);
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
+				$this->tbs->MergeBlock($name, 'array', $value);
+			}
+		}
 		return $this->assertEqualMergeString($result, $message);
 	}
 
-	/**
-	 * Returns directory of HTML files to compare.
-	 */
-	function getTemplateDir() {
-		return dirname(dirname(__FILE__)).'/template/';
+	function assertErrorMergeArrayBlockStrings($source, $vars, $message='%s') {
+		$this->createTBSInstance($source);
+		$this->tbs->NoErr = TRUE;
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
+				$this->tbs->MergeBlock($name, 'array', $value);
+			}
+		}
+		$this->getTBSRender();
+		return $this->assertTrue($this->tbs->ErrCount > 0, $message);
 	}
 
 	/**
@@ -217,25 +268,29 @@ class TBSUnitTestCase extends UnitTestCase {
 	 */
 	function assertEqualMergeFieldFiles($sourceFilename, $vars, $resultFilename, $message='%s') {
 		$this->createTBSInstance(file_get_contents($this->getTemplateDir().$sourceFilename));
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeField($name, $value);
+			}
+		}
 		return $this->assertEqualMergeString(file_get_contents($this->getTemplateDir().$resultFilename), $message);
 	}
 
 	/**
 	 * Test TBS class with one function.
 	 * @param string $sourceFilename fine name of template source
-	 * @param array $vars            associative array of name/value to pass to MergeBlock
+	 * @param array  $vars           associative array of name/value to pass to MergeBlock
 	 * @param string $resultFilename file name of merge result to compare
 	 * @param string $message        message to display (optional)
 	 * @return boolean               True on pass
 	 */
 	function assertEqualMergeBlockFiles($sourceFilename, $vars, $resultFilename, $message='%s') {
 		$this->createTBSInstance(file_get_contents($this->getTemplateDir().$sourceFilename));
-		if (is_array($vars))
-			foreach ($vars as $name => $value)
+		if (is_array($vars)) {
+			foreach ($vars as $name => $value) {
 				$this->tbs->MergeBlock($name, $value);
+			}
+		}
 		return $this->assertEqualMergeString(file_get_contents($this->getTemplateDir().$resultFilename), $message);
 	}
 }

@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 include_once('tbs_plugin_html.php'); // Plug-in to select HTML items.
 
 // Example with values stored in an array.
@@ -28,4 +28,3 @@ $TBS->MergeBlock('lst3' ,$item_lst);
 // The selection of the items is done here
 $TBS->Show();
 
-?>

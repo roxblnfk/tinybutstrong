@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 $array_type1 = array('France'=>33, 'England'=>44, 'Spain'=>34, 'Italy'=>39, 'Deutchland'=>49);
 
@@ -21,4 +21,3 @@ $TBS->MergeBlock('blk2',$array_type2);
 $TBS->MergeBlock('blk3','array','all_array[type2]');
 $TBS->Show();
 
-?>

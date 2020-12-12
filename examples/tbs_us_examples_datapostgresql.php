@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 //Connexion to the database
 /* Use the example below.
@@ -16,4 +16,3 @@ $TBS->MergeBlock('blk1',$cnx_id,'SELECT * FROM t_tbs_exemples');
 
 $TBS->Show();
 
-?>

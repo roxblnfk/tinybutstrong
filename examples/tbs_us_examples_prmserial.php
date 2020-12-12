@@ -1,6 +1,6 @@
 <?php
 
-include_once('tbs_class.php');
+include_once('../tbs_class.php');
 
 $recset[] = array('title'=>'I will love you'  , 'rank'=>'A');
 $recset[] = array('title'=>'Tender thender'   , 'rank'=>'B');
@@ -19,4 +19,3 @@ $TBS->MergeBlock('bx',$recset);
 $TBS->MergeBlock('bz',$recset);
 $TBS->Show();
 
-?>

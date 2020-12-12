@@ -1,6 +1,6 @@
 <?php
 
-error_reporting(E_ALL);
+error_reporting(E_ALL & ~E_USER_NOTICE & ~E_STRICT);
 ini_set("display_errors", "On");
 set_time_limit(0);
 //ini_set('memory_limit', '256M');
@@ -48,6 +48,7 @@ include("{$dir_test}/testcase/FrmTestCase.php");
 include("{$dir_test}/testcase/StrconvTestCase.php");
 include("{$dir_test}/testcase/FieldTestCase.php");
 include("{$dir_test}/testcase/BlockTestCase.php");
+include("{$dir_test}/testcase/BlockGrpTestCase.php");
 include("{$dir_test}/testcase/MiscTestCase.php");
 include("{$dir_test}/testcase/SubTplTestCase.php");
 include("{$dir_test}/testcase/DataSourceTestCase.php");
@@ -55,7 +56,8 @@ include("{$dir_test}/testcase/DataSourceTestCase.php");
 // launch tests
 $SimpleTest = new SimpleTest();
 $tbs = new clsTinyButStrong();
-$test = new TestSuite('TinyButStrong v' . $tbs->Version . ' (with PHP ' . PHP_VERSION . ', simpleTest ' . $SimpleTest->getVersion() . ')');
+$bit = (PHP_INT_SIZE <= 4) ? '32' : '64' ;
+$test = new TestSuite('TinyButStrong v' . $tbs->Version . ' (with PHP ' . PHP_VERSION . " , " . $bit . "-bits), simpleTest " . $SimpleTest->getVersion() . ')');
 
 $test->add(new FieldTestCase());
 $test->add(new BlockTestCase());

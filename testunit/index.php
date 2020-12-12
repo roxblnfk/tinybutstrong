@@ -57,10 +57,11 @@ include("{$dir_test}/testcase/DataSourceTestCase.php");
 $SimpleTest = new SimpleTest();
 $tbs = new clsTinyButStrong();
 $bit = (PHP_INT_SIZE <= 4) ? '32' : '64' ;
-$test = new TestSuite('TinyButStrong v' . $tbs->Version . ' (with PHP ' . PHP_VERSION . " , " . $bit . "-bits), simpleTest " . $SimpleTest->getVersion() . ')');
+$test = new TestSuite("TinyButStrong v{$tbs->Version} (with PHP " . PHP_VERSION . ", {$bit}-bits), simpleTest {$SimpleTest->getVersion()})");
 
 $test->add(new FieldTestCase());
 $test->add(new BlockTestCase());
+$test->add(new BlockGrpTestCase());
 $test->add(new AttTestCase());
 $test->add(new QuoteTestCase());
 $test->add(new FrmTestCase());

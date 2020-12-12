@@ -666,6 +666,26 @@ class DataSourceTestCase extends TBSUnitTestCase {
                 'group' => 24,
             ),
         );
+        $variant4 = array(
+            array(
+                'b' => $el1['b'],
+                'd' => $el1['d'],
+                'group' => 33,
+                'group2' => 33,
+            ),
+            array(
+                'b' => $el2['b'],
+                'd' => $el2['d'],
+                'group' => 198,
+                'group2' => 198,
+            ),
+            array(
+                'b' => $el4['b'],
+                'd' => $el4['d'],
+                'group' => 24,
+                'group2' => 24,
+            ),
+        );
         $results = array(
             array (
                 'b',
@@ -681,6 +701,21 @@ class DataSourceTestCase extends TBSUnitTestCase {
                 'b, d into group',
                 'sum a,  e into group',
                 $variant3,
+            ),
+            array (
+                'b, d into group',
+                'sum a,  e into group , sum e, a into group2',
+                $variant4,
+            ),
+            array (
+                'b, d into group',
+                'sum a,  e into group | sum e, a into group2',
+                $variant4,
+            ),
+            array (
+                'b, d into group',
+                'sum a,  e into group sum e, a into group2',
+                $variant4,
             ),
         );
         foreach ($results as $item) {

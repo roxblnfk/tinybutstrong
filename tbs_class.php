@@ -48,10 +48,10 @@ class clsTbsLocator {
 	public $ConvStr = true;
 	public $ConvMode = 1; // Normal
 	public $ConvBr = true;
-	
+
 	// Compatibility with PHP 8.2
 	public $Prop = array(); // dynamic properties, used by OpenTBS
-	
+
 	public $Ope;
 	public $OpeEnd;
 	public $PosNext;
@@ -70,12 +70,12 @@ class clsTbsLocator {
 
 	public $OnFrmInfo;
 	public $OnFrmArg;
-	
+
 	public $OpeUtf8;
 	public $OpeAct;
 	public $OpePrm;
 	public $OpeArg;
-    
+
     public $OpeMOK;
     public $OpeMKO;
     public $MSave;
@@ -151,6 +151,7 @@ class clsTbsDataSource {
 
 public $Type = false;
 public $SubType = 0;
+/** @var $SrcId mixed */
 public $SrcId = false;
 public $Query = '';
 public $RecSet = false;
@@ -158,6 +159,7 @@ public $RecNumInit = 0; // Used by ByPage plugin
 public $RecSaving = false;
 public $RecSaved = false;
 public $RecBuffer = false;
+/** @var $TBS clsTinyButStrong */
 public $TBS = false;
 public $OnDataOk = false;
 public $OnDataPrm = false;
@@ -175,6 +177,34 @@ public $NextRec = null;
 
 public $PrevSave = false;
 public $NextSave = false;
+
+private $SortFields = array();
+public static $FilterOrders = array(
+    'count'      => 'count',
+    'empty'      => 'empty',
+    'in_array'   => 'in_array',
+    'is_array'   => 'is_array',
+    'is_bool'    => 'is_bool',
+    'is_float'   => 'is_float',
+    'is_int'     => 'is_int',
+    'is_null'    => 'is_null',
+    'is_numeric' => 'is_numeric',
+    'is_object'  => 'is_object',
+    'is_scalar'  => 'is_scalar',
+    'is_string'  => 'is_string',
+    'key_exist'  => 'key_exist',
+);
+public static $SortOrders = array(
+    'nat'   => array('conv' => false, 'func' => 'strnatcasecmp'),   // default
+    'int'   => array('conv' => true,  'func' => 'intval'),
+    'float' => array('conv' => true,  'func' => 'floatval'),
+    'str'   => array('conv' => false, 'func' => 'strcasecmp'),
+);
+public static $CalcOrders = array(
+    'sum'   => 'clsTbsDataSource::DataCalcSum',   // default
+    'count'   => 'clsTbsDataSource::DataCalcCount',
+//	'uniques'   => 'clsTbsDataSource::DataCalcCount', # todo
+);
 
 // Compatibility with PHP 8.2
 public $Prop = array(); // Used by ByPage plugin
@@ -763,6 +793,605 @@ private function _DataFetchOn($obj) {
 
 }
 
+public static function DataCalcSum($data) {
+    $data = (array)$data;
+    $result = 0;
+    foreach ($data as &$item) {
+        $result += array_sum($item);
+    }
+    return $result;
+}
+
+/**
+ * Just return count of the data items
+ * @param $data array[]
+ * @return int
+ */
+public static function DataCalcCount($data) {
+    return count($data);
+}
+
+/**
+ * Get value from object or array by property name or key
+ * @param $el array|object
+ * @param $fld int|string|int[]|string[]
+ * @return mixed|null
+ */
+public static function getVal(&$el, $fld) {
+    $args = func_get_args();
+    array_shift($args);
+    $fields = array();
+    foreach ($args as $a) {
+        $a = (array)$a;
+        foreach($a as $k) {
+            if (!isset($k)) continue;
+            $fields[] = $k;
+        }
+    }
+
+    $ret = $el;
+    for ($i = 0, $mi = count($fields); $i < $mi; ++$i) {
+        $f = $fields[$i];
+        if (is_array($ret))
+            $ret = isset($ret[$f]) ? $ret[$f] : null;
+        elseif (is_object($ret))
+            $ret = $ret->$f;
+        else break;
+    }
+    return $ret;
+}
+
+/**
+ * Replace all 'quoted values' to numeric vars like $1,$2...
+ * @param $line
+ * @return false|array String and vars
+ */
+public static function ReplaceQuotedValues($line) {
+    # find 'values' and replace
+    $pos = 0;
+    $varNum = 1;
+    $vars = array();
+    while (false !== ($pos = strpos($line, "'", $pos))) {
+        $clPos = $pos + 1;
+        while (true) {
+            #find closer '
+            $clPos = strpos($line, "'", $clPos);
+            if ($clPos === false) {
+                // $this->DataAlert('Filtering failed: can\'t found the end of the quot');
+                return false;
+            }
+            ++$clPos;
+            # if escaped ' as \' ## unsupported by TBS
+            if (($clPos - $pos - 1 - strlen(rtrim(substr($line, $pos, $clPos - $pos - 1), '\\'))) % 2 === 1) {
+                // die;
+                continue;
+            }
+            $vars[$varNum] = array(
+                'index' => $varNum,
+                'start' => $pos,
+                'stop'  => $clPos,
+                'value' => str_replace('\\\'', '\'', substr($line, $pos + 1, $clPos - $pos - 2))
+            );
+            ++$varNum;
+            break;
+        };
+        $pos = $clPos;
+    }
+    # replace quoted values
+    if (!$vars)
+        return array($line, array());
+
+    $str = '';
+    $pos = 0;
+    foreach ($vars as $rep) {
+        $str .= substr($line, $pos, $rep['start'] - $pos) . " \${$rep['index']} ";
+        $pos = $rep['stop'];
+    }
+    $str .= substr($line, $pos);
+    return array($str, $vars);
+}
+
+	public function DataGroup($strFields, $strCalc = null) {
+		if ($this->Type != 0) {
+			$this->DataAlert('Grouping failed: grouping can be used only for arrays');
+			return false;
+		}
+		# prepare grouping
+		$pos = strrpos(strtolower($strFields), ' into ');
+		$grField = 'group';	// default field
+		if ($pos === false) {
+			$this->DataAlert('Grouping failed: field name not specified');
+		} else {
+			$str = trim(substr($strFields, $pos + 6));
+			if (strlen($str) > 0) {
+				$grField = $str;
+				$strFields = substr($strFields, 0, $pos);
+			}
+		}
+		# prepare 4 grouping
+		$fields = array();
+		$fkeys = array();
+		$fparam = array();
+		$grps = explode(',', $strFields);
+		foreach ($grps as $gr) {
+			$grpr = explode(' ', trim($gr));	# params
+			$fld = trim($grpr[0]);
+			$fields[$fld] = null;
+			$fkeys[$fld] = null;
+			$fparam[$fld] = array(
+				'asFlags' => false,
+			);
+			if (count($grpr) > 1) {
+				array_shift($grpr);
+				$nextKey = false;
+				$nextFlag = false;
+				foreach ($grpr as $prv) {
+					if ($prv === 'on' && !$nextKey) {
+						$nextKey = true;
+						continue;
+					}
+					if ($nextKey) {
+						$fkeys[$fld] = $prv;
+						$nextKey = false;
+						continue;
+					}
+					if ($nextFlag) {
+						$fparam[$fld]['asFlags'] = $prv;
+						$nextFlag = false;
+						continue;
+					}
+					if ($prv === 'asFlags' && !$nextFlag) {
+						$nextFlag = true;
+					}
+					$fparam[$fld][$prv] = true;
+				}
+			}
+		}
+		if (in_array($grField, $fields)) unset($fields[$grField]);
+		if (!count($fields)) {
+			$this->DataAlert('Grouping failed: no fields');
+			return false;
+		}
+		$values = array();
+		$maxK = -1;
+		# prepare 4 asFlags
+		foreach ($fparam as $fpk => $fpv) {
+			if (false !== $fpv['asFlags']) {
+				// $mpSubValues[$fpk] = array_key_exists($fpk, $v) ? (array)$v[$fpk] : array();
+				unset($fields[$fpk]);
+			}
+		}
+		# grouping
+		foreach ($this->SrcId as &$v) {
+			# find
+			$find = false;
+			if (count($values)) {
+				foreach ($values as $key => &$val) {
+					foreach ($fields as $fld => $arrv) {
+						if (isset($v[$fld]) XOR isset($val[$fld])) {
+							continue 2;
+						} elseif (self::getVal($v, $fld, $fkeys[$fld]) !== self::getVal($val, $fld, $fkeys[$fld])) {
+							continue 2;
+						}
+					}
+					$find = $key;
+					break;
+				}
+			}
+			# fill
+			if ($find === false) {
+				# item with unique sortParams - add as new set
+				$values[++$maxK] = $fields;
+				foreach ($fields as $fld => $arrv) {
+					$values[$maxK][$fld] = isset($v[$fld]) ? $v[$fld] : null;
+				}
+				$values[$maxK][$grField] = array(&$v);
+			} else {
+				$values[$find][$grField][] = &$v;
+			}
+		}
+		if (isset($v)) unset($v);
+		// one by one [asFlags]
+		$resetKeys = false;
+		foreach ($fparam as $fld => $fpv) {
+			if (false !== $fpv['asFlags']) {
+				// $fpk - fieldName
+				$fkey = $fkeys[$fld];
+				# each group from current
+				for ($valKey = 0, $j = $maxK; $valKey <= $j; ++$valKey) {
+					if (!isset($values[$valKey])) continue;
+					$value = &$values[$valKey];
+					# find all unique grouply values
+					$keys = array();
+					foreach ($value[$grField] as &$el) {
+						if (!isset($el[$fld])) {
+							$el[$fld] = null;
+						}
+						if (!is_array($el[$fld])) {
+							if (!in_array($el[$fld], $keys)) {
+								$keys[] = $el[$fld];
+							}
+						} else {
+							foreach ($el[$fld] as &$fpkv) {
+								$fv = isset($fkey) ? self::getVal($fpkv, $fkey) : $fpkv;
+								if (!in_array($fv, $keys)) {
+									$keys[] = &$fv;
+								}
+								unset($fpkv, $fv);
+							}
+						}
+					}
+					if (isset($el)) unset($el);
+					foreach ($keys as &$key) {
+						$values[++$maxK] = array($grField => array());
+						# fill
+						foreach ($value as $inValK => &$inValV) {
+							if ($inValK === $grField) continue;
+							$values[$maxK][$inValK] = &$inValV;
+						}
+						unset($inValV);
+						$values[$maxK][$fld] = $key;
+						# group
+						foreach ($value[$grField] as &$el) {
+							$elFVals = $el[$fld] === null ? array(null) : (array)$el[$fld];
+							foreach ($elFVals as &$elfv) {
+								$fv = isset($fkey) ? self::getVal($elfv, $fkey) : $elfv;
+								if ($fv !== $key) continue;
+								$wr = $el;
+								$values[$maxK][$grField][] = &$wr;
+								if (true !== $fparam[$fld]['asFlags'] && is_array($wr)) {
+									$wr[$fparam[$fld]['asFlags']] = $elfv;
+								}
+								unset($fv, $wr);
+							}
+							if (isset($elfv))
+								unset($elfv);
+						}
+						if (isset($el)) unset($el);
+					}
+					if (isset($key)) unset($key);
+					unset($values[$valKey]);
+					$resetKeys = true;
+				}
+				if (isset($value)) unset($value);
+			}
+			$fields[$fld] = null;
+		}
+		# if need calc fields
+		if ($strCalc) {
+			$m = null;
+			if (preg_match_all('/(\\b[a-z0-9\\-_]+)\\s+((?:[a-z0-9\\-_\\.]+[\\s\\,]+)+?)into\\s+([a-z0-9\\-_\\.]+)\\b/ui', $strCalc, $m, PREG_SET_ORDER)) {
+				$calcs = array();
+				# prepare calc fields
+				foreach ($m as $mk => $calcParam) {
+					$fn = strtolower($calcParam[1]);
+					if (!isset(self::$CalcOrders[$fn])) {
+						$this->DataAlert("Calculating after grouping failed: calcorder `{$fn} not found");
+						continue;
+					}
+					if (!is_callable(self::$CalcOrders[$fn])) {
+						$this->DataAlert("Calculating after grouping failed: calcorder `{$fn} is not callable");
+						continue;
+					}
+					$fields = preg_split('/[\\s\\,]+/u', $calcParam[2], -1, PREG_SPLIT_NO_EMPTY);
+					if ($fields) {
+						$calcs[] = array(
+							'fn' => $fn,
+							'fs' => $fields,
+							'to' => $calcParam[3],
+						);
+					}
+				}
+				# calculating
+				if ($calcs) {
+					foreach ($values as &$group) {
+						$vals = array();
+						# prepare data
+						foreach ($calcs as $ck => $calc) {
+							$vals[$ck] = array();
+							foreach ($group[$grField] as $sk => &$sub) {
+								$vals[$ck][$sk] = array();
+								foreach ($calc['fs'] as $f) {
+									if (array_key_exists($f, $sub)) {
+										$vals[$ck][$sk][$f] = &$sub[$f];
+									} else {
+										$vals[$ck][$sk][$f] = null;
+									}
+								}
+							}
+							if (isset($sub)) unset($sub);
+						}
+						# call calculating
+						foreach ($calcs as $ck => $calc) {
+							$group[$calc['to']] = call_user_func(self::$CalcOrders[$calc['fn']], $vals[$ck]);
+						}
+					// var_dump($group);
+					// die;
+					}
+					unset($group);
+				}
+			}
+		// var_dump($strCalc);
+		// var_dump($m);
+		// die;
+		}
+
+		$this->SrcId = $resetKeys ? array_values($values) : $values;
+		$this->RecNbr = count($values);
+		return true;
+	}
+
+	public function DataSort($order) {
+		if ($this->Type != 0) {
+			$this->DataAlert('Sorting failed: sorting can be used only for arrays');
+			return false;
+		}
+		$this->SortFields = array();
+		$sor = explode(',', $order);
+		foreach ($sor as $sr) {
+			$tmp = array();
+			preg_match('/([\w\d]+)(?(?=\s+as\s+)\s+as\s+([\w\d]+))(?(?=\s+asc|\s+desc)\s+(asc|desc))/i', $sr, $tmp);
+			$k = isset($tmp[1]) ? trim($tmp[1]) : '';
+			$asc = !isset($tmp[3]) || strtolower($tmp[3]) !== 'desc';
+			$type = reset(self::$SortOrders);
+			if (isset($tmp[2]) && strlen($tmp[2])) {
+				$tmp[2] = strtolower($tmp[2]);
+				if (isset(self::$SortOrders[$tmp[2]])) {
+					$type = self::$SortOrders[$tmp[2]];
+				} else {
+					$this->DataAlert('Sorting warning: type ' . $tmp[2] . ' not found');
+				}
+			}
+			$this->SortFields[$k] = array($type, $asc);
+		}
+		if (!count($this->SortFields)) {
+			$this->DataAlert('Sorting failed: no fields for sort');
+			return false;
+		}
+		if (!usort($this->SrcId, array($this, 'SortCompare'))) {
+			$this->DataAlert('Sorting failed.');
+			return false;
+		}
+		return true;
+	}
+
+	public function DataFilter($params) {
+		if ($this->Type != 0) {
+			$this->DataAlert('Filtering failed: function can be used only for arrays');
+			return false;
+		}
+
+		# find 'values' and replace
+		$arr = self::ReplaceQuotedValues($params);
+		if (!$arr) {
+			$this->DataAlert('Filtering failed: can\'t parse the values in quotes');
+			return false;
+		}
+		$vars = $arr[1];
+
+		# parse expression
+		$paramsOR = explode('|', $arr[0]);
+		$or = array();
+		foreach ($paramsOR as $lineOR) {
+			$paramsAND = explode('&', $lineOR);
+			$and = array();
+			foreach ($paramsAND as $lineAND) {
+				$lineAND = trim($lineAND);
+				if ($lineAND === '')
+					continue;
+				# Property as bool
+				if (preg_match('#^(\\!?\s*[a-z_0-9\\.]+)$#i', $lineAND, $tmp)) {
+					$tmpArr = array(
+						'type' => 'prop',
+						'not'  => substr($tmp[1], 0, 1) === '!',
+					);
+					$tmpArr['fields'] = explode('.', $tmpArr['not'] ? ltrim(substr($tmp[1], 1)) : $tmp[1]);
+					$and[] = $tmpArr;
+					// echo " >>  var detected: {$tmp[1]}\n";
+				}
+				# Callback
+				if (preg_match('#^(?<fn>\\!?\s*[a-z_0-9]+)\s*\\((?<args>(?:(?:\s*\\,)*\s*(?>[a-z_0-9\\.\\-]+|\\$[0-9]+)\s*(?:\s*\\,)*\s*)*)\\)$#i', $lineAND, $tmp)) {
+					$tmpArr = array(
+						'type'   => 'call',
+						'not'    => substr($tmp['fn'], 0, 1) === '!',
+						'params' => array(),
+					);
+					$tmpParams = trim($tmp['args']) === '' ? array() : explode(',', $tmp['args']);
+					$tmpArr['function'] = $tmpArr['not'] ? ltrim(substr($tmp['fn'], 1)) : $tmp['fn'];
+					if (!key_exists($tmpArr['function'], self::$FilterOrders)) {
+						$this->DataAlert("Filtering failed: function {$tmpArr['function']} not found in clsTbsDataSource::\$FilterOrders");
+						return false;
+					}
+					if (!is_callable(self::$FilterOrders[$tmpArr['function']])) {
+						$this->DataAlert("Filtering failed: function {$tmpArr['function']} is not callable");
+						return false;
+					}
+					foreach ($tmpParams as $val) {
+						$val = trim($val);
+						# void
+						if ($val === '') {
+							$tmpArr['params'][] = array('value', null);
+							continue;
+						}
+						# quoted value
+						if (substr($val, 0, 1) === '$') {
+							$num = (int)substr($val, 1);
+							if (!isset($vars[$num])) {
+								$this->DataAlert("Filtering failed: quoted value \${$num} not found");
+								return false;
+							}
+							$tmpArr['params'][] = array('value', &$vars[$num]['value']);
+							continue;
+						}
+						# numeric value
+						if (is_numeric($val)) {
+							$tmpArr['params'][] = array('value', $val);
+							continue;
+						}
+						# property
+						$tmpArr['params'][] = array('prop', explode('.', $val));
+					}
+					// echo " >>  callback detected: {$tmp[1]}(" . implode(', ', $tmpArr['params']) . ")\n";
+					$and[] = $tmpArr;
+				}
+				# Conditions
+				if (preg_match('#^([a-z_0-9\\.\\-]+?|\\$[0-9]+)\s*([\\!\\+\\-\\=\\~]{1,3})\s*([a-z_0-9\\.\\-]+|\\$[0-9]+)$#i', $lineAND, $tmp)) {
+					$tmpArr = array(
+						'type' => 'cond',
+						'op' => $tmp[2],
+					);
+					$ops = array('o1' => $tmp[1], 'o2' => $tmp[3]);
+					foreach ($ops as $key => $val) {
+						# quoted value
+						if (substr($val, 0, 1) === '$') {
+							$num = (int)substr($val, 1);
+							if (!isset($vars[$num])) {
+								$this->DataAlert("Filtering failed: quoted value \${$num} not found");
+								return false;
+							}
+							$tmpArr[$key] = array('value', &$vars[$num]['value']);
+							continue;
+						}
+						# numeric value
+						if (is_numeric($val)) {
+							$tmpArr[$key] = array('value', $val);
+							continue;
+						}
+						# property
+						$tmpArr[$key] = array('prop', explode('.', $val));
+					}
+					// echo " >>  expression detected: {$tmp[1]} {$tmp[2]} {$tmp[3]} \n";
+					$and[] = $tmpArr;
+				}
+
+			}
+			if ($and)
+				$or[] = $and;
+		}
+		if (!$or)
+			return false;
+
+		$keysToDel = array();
+		# filter values
+		foreach ($this->SrcId as $key => $value) {
+			$okOr = false;
+			# 'or' list
+			foreach ($or as &$ands) {
+				# 'and' list
+				foreach ($ands as &$cond) {
+					$ok = false;
+					switch ($cond['type']) {
+						case 'prop' :
+							$ok = (bool)self::getVal($value, $cond['fields']);
+							if ($cond['not'])
+								$ok = !$ok;
+							break;
+						case 'call' :
+							$fn = $cond['function'];
+							$params = array();
+							foreach ($cond['params'] as $param) {
+								if ($param[0] === 'value')
+									$params[] = $param[1];
+								elseif ($param[0] === 'prop')
+									$params[] = self::getVal($value, $param[1]);
+							}
+							if ($params) {
+								$ok = call_user_func_array(self::$FilterOrders[$fn], $params);
+							}
+							else
+								$ok = call_user_func(self::$FilterOrders[$fn], $value);
+							if ($cond['not'])
+								$ok = !$ok;
+							break;
+						case 'cond' :
+							# o1
+							if ($cond['o1'][0] === 'value')
+								$o1 = $cond['o1'][1];
+							elseif ($cond['o1'][0] === 'prop')
+								$o1 = self::getVal($value, $cond['o1'][1]);
+							# o2
+							if ($cond['o2'][0] === 'value')
+								$o2 = $cond['o2'][1];
+							elseif ($cond['o2'][0] === 'prop')
+								$o2 = self::getVal($value, $cond['o2'][1]);
+							# ope
+							switch ($cond['op']) {
+								case '==' :
+								case '=' :
+									$ok = strcasecmp((string) $o1, (string) $o2) == 0;
+									break;
+								case '!=' :
+									$ok = strcasecmp((string) $o1, (string) $o2) != 0;
+									break;
+								case '~=' :
+									$ok = preg_match((string) $o1, (string) $o2) > 0;
+									break;
+								case '+-' :
+									$ok = $o1 > $o2;
+									break;
+								case '-+' :
+									$ok = $o1 < $o2;
+									break;
+								case '+=-' :
+									$ok = $o1 >= $o2;
+									break;
+								case '-=+' :
+									$ok = $o1 <= $o2;
+									break;
+								default:
+									$this->DataAlert("Filtering failed: undefined operator {$cond['op']}");
+									// return false;
+							}
+							break;
+					}
+					if (!$ok)
+						continue 2; # go to next OR condition
+				}
+				$okOr = true;
+			}
+			// unset($value);
+			if (!$okOr)
+				$keysToDel[] = $key;
+		}
+		if ($keysToDel) {
+			$values = $this->SrcId;
+			foreach ($keysToDel as $key)
+				unset($values[$key]);
+			unset($this->SrcId); # destroy link for subblocks
+			$this->SrcId = &$values;
+		}
+		return true;
+	}
+
+	protected function SortCompare($a, $b) {
+		foreach ($this->SortFields as $field => $par) {
+			$iv = $par[1] ? 1 : -1; // asc|desc
+			if (!isset($a[$field])) {
+				if (isset($b[$field])) {
+					return -$iv;
+				} else {
+					continue;
+				}
+			} elseif (!isset($b[$field])) {
+				if (isset($a[$field])) {
+					return $iv;
+				} else {
+					continue;
+				}
+			}
+			$fn = $par[0]['func'];
+			if ($par[0]['conv']) {
+				$x = call_user_func($fn, $a[$field]);
+				$y = call_user_func($fn, $b[$field]);
+				if ($x == $y) continue;
+				return $x > $y ? $iv : -$iv;
+			} else {
+				if ($a[$field] === $b[$field]) continue;
+				return call_user_func($fn, $a[$field], $b[$field]) * $iv;
+			}
+		}
+		return 0;
+	}
 }
 
 // *********************************************
@@ -809,7 +1438,7 @@ public $_PlugIns = array();
 public $_PlugIns_Ok = false;
 public $_piOnFrm_Ok = false;
 
-// Compatibility with PHP 8.2
+	// Compatibility with PHP 8.2
 private $_UserFctLst;
 private $_Subscript;
 public  $CurrPrm;
@@ -877,7 +1506,7 @@ function __construct($Options=null,$VarPrefix='',$FctPrefix='') {
 
 	// Set VarRef initial value
 	$this->ResetVarRef(true);
-	
+
 	// Set options
 	if (is_array($Options)) $this->SetOption($Options);
 
@@ -992,7 +1621,7 @@ public function ResetVarRef($ToGlobal) {
 /**
  * Get an item value from VarRef.
  * Ensure the compatibility with PHP 8.1 if VarRef is set to Global.
- * 
+ *
  * @param string $key      The item key.
  * @param mixed  $default  The default value.
  *
@@ -1001,7 +1630,7 @@ public function ResetVarRef($ToGlobal) {
 public function GetVarRefItem($key, $default) {
 
 	if (is_null($this->VarRef)) {
-		
+
 		if (array_key_exists($key, $GLOBALS)) {
 			return $GLOBALS[$key];
 		} else {
@@ -1017,13 +1646,13 @@ public function GetVarRefItem($key, $default) {
 		}
 
 	}
-	
+
 }
 
 /**
  * Set an item value to VarRef.
  * Ensure the compatibility with PHP 8.1 if VarRef is set to Global.
- * 
+ *
  * @param string|array $keyOrList   A list of keys and items to add, or the item key.
  * @param mixed        $value       (optional) The item value. Use NULL in order to delete the item.
  */
@@ -1036,7 +1665,7 @@ public function SetVarRefItem($keyOrList, $value = null) {
 	}
 
 	if (is_null($this->VarRef)) {
-		
+
 		foreach ($list as $key => $value) {
 			if (is_null($value)) {
 				unset($GLOBALS[$key]);
@@ -1056,7 +1685,7 @@ public function SetVarRefItem($keyOrList, $value = null) {
 		}
 
 	}
-	
+
 }
 
 // Public methods
@@ -1973,7 +2602,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			}
 		} else {
 			if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'parameter \'script\' is forbidden by default. It can be allowed by a TBS option.',true);
-			$x = '';	
+			$x = '';
 		}
 		if ($x!=='') {
 			$this->_Subscript = $x;
@@ -2093,7 +2722,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 /**
  * Return the first block locator just after the PosBeg position
  *
- * @param integer $Mode 
+ * @param integer $Mode
  *                1 : Merge_Auto => doesn't save $Loc->BlockSrc, save the bounds of TBS Def tags instead, return also fields
  *                2 : FindBlockLst or GetBlockSource => save $Loc->BlockSrc without TBS Def tags
  *                3 : GetBlockSource => save $Loc->BlockSrc with TBS Def tags
@@ -2809,6 +3438,21 @@ function meth_Merge_Block(&$Txt,$BlockLst,&$SrcId,&$Query,$SpePrm,$SpeRecNum,$Qr
 			$QueryOk = false;
 			$WasP1 = false;
 		}
+
+        foreach ($LocR->PrmLst as $PrmKey => $PrmVal) {
+            if ($PrmKey === 'groupby') {
+                $Src->DataGroup(
+                    $PrmVal,
+                    isset($LocR->PrmLst['groupcalc']) ? $LocR->PrmLst['groupcalc'] : null
+                );
+            }
+            if ($PrmKey === 'sortby') {
+                $Src->DataSort($PrmVal);
+            }
+            if ($PrmKey === 'filter') {
+                $Src->DataFilter($PrmVal);
+            }
+        }
 
 		// Open the recordset
 		if ($QueryOk) {

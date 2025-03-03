@@ -3,7 +3,7 @@
 class OpeTestCase extends TBSUnitTestCase {
 
 	function __construct() {
-		$this->UnitTestCase('Ope Unit Tests');
+        parent::__construct('Ope Unit Tests');
 	}
 
 	function setUp() {

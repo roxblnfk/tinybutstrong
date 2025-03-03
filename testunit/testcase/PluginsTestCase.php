@@ -16,7 +16,7 @@ class clsTbsTestOnDataPlugIn {
 class PluginsTestCase extends TBSUnitTestCase {
 
 	function __construct() {
-		$this->UnitTestCase('Miscelaneous Unit Tests');
+        parent::__construct('Miscelaneous Unit Tests');
 	}
 
 	function setUp() {

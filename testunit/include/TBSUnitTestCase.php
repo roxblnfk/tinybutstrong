@@ -5,9 +5,15 @@ class TBSUnitTestCase extends UnitTestCase {
 
 	/**
 	 * Last instance of 'clsTinyButStrong' class.
+     * @var clsTinyButStrong
 	 */
 	var $tbs;
 	var $newInstance = true;
+	/**
+	 * Last instance of 'clsTbsDataSource' class.
+	 * @var $dataSrc clsTbsDataSource
+	 */
+	var $dataSrc;
 
 	/**
 	 * Dump last merge result.
@@ -71,6 +77,7 @@ class TBSUnitTestCase extends UnitTestCase {
 	 * @param string $source         source of template
 	 */
 	function createTBSInstance($source) {
+		$this->dataSrc = null;
 		if ($this->newInstance) {
 			$this->tbs = new clsTinyButStrong;
 		} else {
@@ -78,6 +85,17 @@ class TBSUnitTestCase extends UnitTestCase {
 		}
 		$this->tbs->Source = $source;
 		$this->tbs->LoadTemplate(null);
+	}
+
+	/**
+	 * Simple instanciate clsTbsDataSource class.
+	 * @param mixed $data data for DataPrepare function
+	 * @param string $source
+	 */
+	function createTbsDataSourceInstance($data, $source = '') {
+		$this->createTBSInstance($source);
+		$this->dataSrc = new clsTbsDataSource;
+		$this->dataSrc->DataPrepare($data, $this->tbs);
 	}
 
 	/**
@@ -276,5 +294,3 @@ class TBSUnitTestCase extends UnitTestCase {
 		return $this->assertEqualMergeString(file_get_contents($this->getTemplateDir().$resultFilename), $message);
 	}
 }
-
-?>
